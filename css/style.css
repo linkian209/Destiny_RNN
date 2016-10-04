@@ -1,0 +1,142 @@
+@font-face {
+	font-family: Futurist;
+	src: url(../font/Futura_ICG.ttf);
+}
+
+#gun {
+	width: 50%;
+	font-family: Futurist;
+	background-color: #2F4F4F;
+	display: inline-block;
+	color: white;
+}
+
+#details {
+	width: 50%;
+	float: left;
+}
+
+#perks {
+    width: 50%;
+	float: left;
+}
+
+#pop-up {
+	display: none;
+	position: absolute;
+	width: 280px;
+	padding: 10px;
+	background: #eeeeee;
+	color: #000000;
+	border: 1px solid #1a1a1a;
+	font-size: 90%;
+}
+
+.perk {
+	border-radius: 50px;
+	background-color: #3c7bae;
+	margin: 2px;
+}
+
+.passive {
+	background-color: lightgrey;
+	border: grey 2px solid;
+}
+
+.perk img {
+	width: 55px;
+	height: 55px;
+}
+
+.exotic {
+	width: 100%;
+	background-color: #e6c300;
+}
+
+.legendary {
+	width: 100%;
+	background-color: #e6c300;
+}
+
+.rare {
+	width: 100%;
+	background-color: #e6c300;
+}
+
+.common {
+	width: 100%;
+	background-color: #e6c300;
+}
+
+.name {
+	font-weight: bold;
+	font-size: 24px;
+}
+
+.desc {
+	font-style: italic;
+}
+
+.bar {
+  float: left;
+  display: inline-block;
+  height: 45px;
+  width: 100%;
+  padding: 12px 0;
+  margin-left: 10px;
+  margin-right: 5px;
+}
+
+.bar-track {
+	background-color: #778899;
+	display: inline-block;	
+	width: 100%;
+	position: relative;
+}
+
+.bar-fill {
+	background-color: white;
+	position: relative;
+	display: inline-block;
+}
+
+.contain {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+}
+
+.progress{
+	background: rgba(149, 128, 153, 1);
+	border: 0px solid rgba(245,245,245,1);
+	border-radius: 0px;
+	height: 20px;
+}
+
+.progress-fill {
+	background: rgba(255,255,255,1);
+}
+
+.void {
+	color: #aa21f7;
+}
+
+.void img {
+	margin-bottom: 25px;
+}
+
+.solar {
+	color: #f36f21;
+}
+
+.solar img {
+	margin-bottom: 25px;
+}
+
+.arc {
+	color: #85c5ec;
+}
+
+.arc img {
+	margin-bottom: 25px;
+}
