@@ -8,6 +8,7 @@ import operator
 import io
 import array
 import zipfile
+import numpy as np
 from tqdm import tqdm
 from datetime import datetime
 
@@ -122,8 +123,8 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
    # Initialize Vars
    word_to_index = []
    index_to_word = []
-   word_freq = {}
    vocab = []
+   tokenized = []
 
    # Read in data
    for cur_archive in tqdm(range(len(filenames)),desc="Archives"):
@@ -140,9 +141,7 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
          # Get the rolls from it and tokenize it
          with open(cur_file, 'r') as f:
             rolls = f.readlines()
-         tokenized = [nltk.word_tokenize(roll) for roll in rolls]
-         # Add it to the word frequency struct
-         word_freq += nltk.FreqDist(itertools.chain(*tokenized))
+         tokenized += [nltk.word_tokenize(roll) for roll in rolls]
          # Delete the current file
          os.remove(cur_file)
 
@@ -152,8 +151,19 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
 
    # After looping through the data, get the most used words and use them
    # as our vocab
+   word_freq = nltk.FreqDist(itertools.chain(*tokenized))
    vocab = sorted(word_freq.items(), key=lambda x: (x[1], x[0]))
    vocab = sorted(vocab, key=operator.itemgetter(1))
 
    index_to_word = ["<MASK/>", UNKNOWN_TOKEN] + [x[0] for x in vocab]
    word_to_index = dict([(w,i) for i,w in enumerate(index_to_word)])
+
+  # Replace missing words with the unknown token
+  for i, sent in enumerate(tokenized):
+      tokenized[i] = [w if w in word_to_index else UNKNOWN_TOKEN for w in sent]
+
+  # Create Training Data
+  x_train = np.asarray([[word_to_index[w] for w in sent[:-1]] for sent in tokenized])
+  y_train = np.asarray([[word_to_index[w] for w in sent[1:]] for sent in tokenized])
+
+   return x_train, y_train, word_to_index, index_to_word
