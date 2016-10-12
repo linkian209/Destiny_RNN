@@ -14,10 +14,15 @@ from datetime import datetime
 
 # Globals
 UNKNOWN_TOKEN = 'UNKNOWN_TOKEN'
+BEGIN_TOKEN = 'BEGIN_GUN'
+END_TOKEN = 'GUN_END'
 
-def makeGrid(input):
+# makeGrid
+# This function creates the iterable grid from the Destiny Manifest
+# for an inputed talentGrid
+def makeGrid(grid):
    retval = {}
-   for item in input['nodes']:
+   for item in grid['nodes']:
       col = item['column']
       row = item['row']
       if col not in retval:
@@ -28,16 +33,21 @@ def makeGrid(input):
    retval = getRolls(retval)
    return(retval)
 
-def convert(input):
-    if isinstance(input, dict):
-        return {convert(key): convert(value) for key, value in input.iteritems()}
-    elif isinstance(input, list):
-        return [convert(element) for element in input]
-    elif isinstance(input, unicode):
-        return input.encode('utf-8')
+# convert
+# This function converts a list or dict of strings to utf-8
+def convert(obj):
+    if isinstance(obj, dict):
+        return {convert(key): convert(value) for key, value in obj.iteritems()}
+    elif isinstance(obj, list):
+        return [convert(element) for element in obj]
+    elif isinstance(obj, unicode):
+        return obj.encode('utf-8')
     else:
-        return input
+        return obj
 
+# getRolls
+# This function takes iterable grids from makeGrid and makes a dict of
+# all possible rolls for a gun
 def getRolls(grid):
    retval = {}
    for col in grid:
@@ -46,6 +56,9 @@ def getRolls(grid):
          retval[col][row] = getPerksByRow(grid[col][row])
    return(retval)
 
+# getPerksByRow
+# Recursive function to get all perks for an inputted row on the gun's
+# talent grid
 def getPerksByRow(row):
    retval = []
    def loop(row):
@@ -57,6 +70,9 @@ def getPerksByRow(row):
    loop(row)
    return retval
 
+# makeTrainingData
+# This function takes the dict created in getRolls and formats it for use
+# in training the RNN
 def makeTrainingData(items, stats, perks, grid, item_hash):
    # Stat hashes [    ROF   ,   IMPACT  ,    RANGE  , STABILITY,   RELOAD  ]
    stat_hashes = [4284893193, 4043523819, 1240592695, 155624089, 4188031367]
@@ -106,6 +122,10 @@ def makeTrainingData(items, stats, perks, grid, item_hash):
          # Done with perks. Finish roll then right it out!
          roll += 'END_PERKS END_GUN\n'
          f.write(roll)
+
+# init
+# This function is used for testing to auto initialize several components
+# necessary to create training data
 def init():
    with open('manifest.pickle','rb') as f:
       data = pickle.loads(f.read())
@@ -119,6 +139,8 @@ def init():
          all_items[items[i]['itemName']] = {'grid': items[i]['talentGridHash'], 'hash': i}
    return(data,items,grids,all_items)
 
+# loadData
+# Takes in a list of archive file names and loads in the training data
 def loadData(filenames,vocab_size=2000, min_sent_chars=0):
    # Initialize Vars
    word_to_index = []
@@ -162,8 +184,153 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
   for i, sent in enumerate(tokenized):
       tokenized[i] = [w if w in word_to_index else UNKNOWN_TOKEN for w in sent]
 
-  # Create Training Data
+  # Create Training Data Arrays
   x_train = np.asarray([[word_to_index[w] for w in sent[:-1]] for sent in tokenized])
   y_train = np.asarray([[word_to_index[w] for w in sent[1:]] for sent in tokenized])
 
    return x_train, y_train, word_to_index, index_to_word
+
+# trainWithSGD
+# Take the inputted model and training data and run a number of epochs
+# over the data to train the model
+def trainWithSGD(model, x_train, y_train, learning_rate=.001, nepoch=20,
+  decay=0.9, callback_every=10000, callback=None):
+
+  examples_seen = 0
+  for epoch in tqdm(range(nepoch), desc='Epochs'):
+    for i in tqdm(np.random.permutation(len(y_train)), desc='Example'):
+      # Do one step with Stochastic Gradient Descent
+      model.sgd_step(x_train[i], y_train[i], learning_rate, decay)
+      examples_seen += 1
+      # Do the callback if we have a callback and have seen enough
+      if(callback and callback_every and examples_seen % callback_every == 0):
+        callback(model, examples_seen)
+
+  # Return the model once we complete training
+  return model
+
+# saveModelParamsTheano
+# Takes an inputted model and filename and outputs the model to file
+def saveModelParamsTheano(model, outfile):
+  np.savez(outfile,
+    E=model.E.get_value(),
+    U=model.U.get_value(),
+    W=model.W.get_value(),
+    V=model.V.get_value(),
+    b=model.b.get_value(),
+    c=model.c.get_value())
+
+  print "Saved model to %s!" % outfile
+
+# loadModelParamsTheano
+# Takes in a path to a file, loads in the data, and builds a model from
+# the saved data
+def loadModelParamsTheano(path, modelClass=GRUTheano):
+  # Load data and params
+  npzfile = np.load(path)
+  E, U, W, V = npzfile["E"], npzfile["U"], npzfile["W"], npzfile["V"]
+  b, c = npzfile["b"], npzfile["c"]
+  hidden_dim, word_dim = E.shape[0], E.shape[1]
+
+  # Build Model
+  print "Building model..."
+  model = modelClass(word_dim, hidden_dim=hidden_dim)
+  model.E.set_value(E)
+  model.U.set_value(U)
+  model.W.set_value(W)
+  model.V.set_value(V)
+  model.b.set_value(b)
+  model.c.set_value(c)
+
+  return model
+
+# gradientCheckTheano
+# Takes the inputted model and training data to check the model's parameters
+# for error
+def gradientCheckTheano(model, x, y, h=0.001, error_threshold=0.01):
+  # Overwrite truncate value so we can backpropgate all the way
+  model.bptt_truncate = 1000
+  # Now calculate backpropation gradients
+  bptt_gradients = model.bptt(x,y)
+
+  # Perform gradient check for each parameter we want to check
+  model_params = ['E', 'U', 'W', 'V', 'b', 'c']
+  for idx, name in tdqm(enumerate(model_params), desc='Params'):
+    # Get actual param from model
+    param_T = operator.attrgetter(name)(model)
+    param = param_T.get_value()
+
+    # Iterate over each element of the param matrix
+    it = np.nditer(param, flags=['multi_index'], op_flags=['readwrite'])
+    while not it.finished:
+      i = it.multi_index
+      # Save copy of original param
+      original = param[i]
+      # Estimate gradient using central difference formula
+      param[i] = original + h
+      param_T.set_value(param)
+      grad_plus = model.calculate_total_loss([x],[y])
+      param[i] = original - h
+      param_T.set_value(param)
+      grad_minus = model.calculate_total_loss([x],[y])
+      estimated = (grad_plus - grad_minus) / (2 * h)
+      # Set param back to original
+      param_T.set_value(original)
+      # Get gradient calculated through BPTT
+      bp_grad = bptt_gradients[idx][i]
+      # Calculate Relative Error
+      rel_err = np.abs(bp_grad - estimated) / (np.abs(bp_grad) + np.abs(estimated))
+      # Check the error to make sure it is within spec
+      if rel_err > error_threshold:
+        print "Gradient Check Error: param=%s, i=%s" % (name, i)
+        print "+h loss: %f" % grad_plus
+        print "-h loss: %f" % grad_minus
+        print "Estimated gradient: %f" % estimated
+        print "Backpropogation gradient: %f" % bp_grad
+        print "Relative error: %f" % rel_err
+        return
+
+      it.iternext()
+
+    print "Gradient check for param %s passed!" % name
+
+# printGun
+# Prints out the gun generated by the network
+def printGun(s, index_to_word):
+  sentence_str = [index_to_word[x] for x in s[1:-1]]
+  print " ".join(sentence_str)
+
+# generateGun
+# Takes in the trained model and the word indices and returns a gun
+def generateGun(model, index_to_word, word_to_index, min_length=20):
+  # Start with the begin token
+  new_gun = [word_to_index[BEGIN_TOKEN]]
+  # Repeat until we get an end token or the gun is too long (>300 words)
+  # to make sure we aren't getting caught in some loop
+  while not new_gun[-1] == word_to_index[END_TOKEN]:
+    next_word_prob = model.predict(new_gun)[-1]
+    samples = np.random.multinomial(1, next_word_prob)
+    sampled_word = np.argmax(samples)
+    new_sentece.append(sampled_word)
+    # Make sure we aren't stuck and don't have an unknown_token
+    if len(new_sentence) > 300 or sampled_word == word_to_index[UNKNOWN_TOKEN]:
+      return None
+
+  if len(new_sentence) < min_length:
+    return None
+
+  return new_sentence
+
+# generateGuns
+# Given a model, word indices, and a number of guns to make, this function
+# generates guns from the model
+def generateGuns(model, n, index_to_word, word_to_index):
+  time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+  with open("guns_%s.txt" % time, 'w') as f:
+    for i in tqdm(range(n), desc="Guns"):
+      sent = None
+      while not sent:
+        sent = generateGun(model, index_to_word, word_to_index)
+
+      f.write(" ".join(sent))
+      f.write('\n')
