@@ -7,58 +7,57 @@
 <body>
 Hello!
 <br>
-<div id='gun'>
-	<div id='details'>
-		<div class='exotic'>
-			<span class='name'>GJALLERHORN</span>
-			<br>
-			<span class='gun-type'>Rocket Launcher</span>
-		</div>
-		<div class='stats'>
-			<div class='solar'>
-				<img src='img/Solar Damage_color.png' height='50' width='50'>&nbsp;<span style='font-size:50px'>365&nbsp</span>ATTACK
+<section id='one'>
+	<div id='gun'>
+		<div id='details'>
+			<div class='exotic'>
+				<span class='name'>GJALLERHORN</span>
+				<br>
+				<span class='gun-type'>Rocket Launcher</span>
 			</div>
-			<span class='desc'>"If there is beauty in destruction, why not also in its delivery?" - Feizel Crux</span>
-			<hr>
-			<div id='rof' class='contain'>
-				<div style="margin-right:5px;" class="row">
-					<span class="col-sm-3">Rate of Fire</span>
-					<div class="progress">
-						<div class="progress-bar progress-fill" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%">
-							<span class="sr-only">45% Complete</span>
+			<div class='stats'>
+				<div class='solar'>
+					<img src='img/Solar Damage_color.png' height='50' width='50'>&nbsp;<span style='font-size:50px'>365&nbsp;</span>ATTACK
+				</div>
+				<span class='desc'>"If there is beauty in destruction, why not also in its delivery?" - Feizel Crux</span>
+				<hr>
+				<div id='rof' class='contain'>
+					<div style="margin-right:5px;" class="row">
+						<span class="col-sm-3">Rate of Fire</span>
+						<div class="progress">
+							<div class="progress-bar progress-fill" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%">
+								<span class="sr-only">45% Complete</span>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+		<div id='perks'>
+			<div class='column'>
+				<div id='solar' class='perk passive'>
+					<img src='img/Solar Damage.png'>
+				</div>
+			</div>
+			<div class='column'>
+				<div id='soft_launch' class='perk'>
+					<img src='img/Soft Launch.png'>
+				</div>
+				<div id='soft_launch' class='perk'>
+					<img src='img/Soft Launch.png'>
+				</div>
+				<div id='soft_launch' class='perk'>
+					<img src='img/Soft Launch.png'>
+				</div>
+			</div>
+			<div class='column'>
+				<div id='tracking' class='perk'>
+					<img src='img/Tracking.png'>
+				</div>
+			</div>
+		</div>
 	</div>
-	<div id='perks'>
-		<table>
-			<tr>
-				<td>
-					<div id='solar' class='perk passive'>
-						<img src='img/Solar Damage.png'>
-					</div>
-				</td>
-				<td>
-					<div id='soft_launch' class='perk'>
-						<img src='img/Soft Launch.png'>
-					</div>
-				</td>
-				<td>
-					<div id='tracking' class='perk'>
-						<img src='img/Tracking.png'>
-					</div>
-				</td>
-			</tr>
-		</table>
-	</div>
-	<div id='pop-up'>
-		<span class='name' id='perk-name'></span>
-		<hr style='border-color: black;'>
-		<span id='perk-desc'></span>
-	</div>
-</div>
+</section>
 <br>
 <div id='test'></div>
 <script type='text/javascript'>
@@ -95,5 +94,10 @@ $(function() {
 });
 */
 </script>
+	<div id='pop-up'>
+		<span class='name' id='perk-name'></span>
+		<hr style='border-color: black;'>
+		<span id='perk-desc'></span>
+	</div>
 </body>
 </html>

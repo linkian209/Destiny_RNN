@@ -3,8 +3,16 @@
 	src: url(../font/Futura_ICG.ttf);
 }
 
+section {
+	padding: 20px;
+}
+
+#one {
+	background-color: #5e42a6;
+}
+
 #gun {
-	width: 50%;
+	width: 100%;
 	font-family: Futurist;
 	background-color: #2F4F4F;
 	display: inline-block;
@@ -33,9 +41,15 @@
 }
 
 .perk {
-	border-radius: 50px;
+	border-radius: 50%;
+	width: 55px;
+	height: 55px;
 	background-color: #3c7bae;
 	margin: 2px;
+}
+
+.stats {
+	padding-left: 5px;
 }
 
 .passive {
@@ -71,6 +85,11 @@
 .name {
 	font-weight: bold;
 	font-size: 24px;
+	margin-left: 5px;
+}
+
+.gun-type {
+	margin-left: 5px;
 }
 
 .desc {
@@ -106,6 +125,10 @@
 	width: 100%;
 }
 
+.column {
+	float: left;
+}
+
 .progress{
 	background: rgba(149, 128, 153, 1);
 	border: 0px solid rgba(245,245,245,1);
@@ -139,4 +162,20 @@
 
 .arc img {
 	margin-bottom: 25px;
+}
+
+@media
+only screen and (max-width: 770px) {
+	
+	#gun {
+		width: 100%;
+	}
+	
+	#details {
+		width: 100%;
+	}
+
+	#perks {
+		width: 100%;
+	}
 }
