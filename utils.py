@@ -200,7 +200,7 @@ def trainWithSGD(model, x_train, y_train, learning_rate=.001, nepoch=20,
   for epoch in tqdm(range(nepoch), desc='Epochs'):
     for i in tqdm(np.random.permutation(len(y_train)), desc='Example'):
       # Do one step with Stochastic Gradient Descent
-      model.sgd_step(x_train[i], y_train[i], learning_rate, decay)
+      model.sgdStep(x_train[i], y_train[i], learning_rate, decay)
       examples_seen += 1
       # Do the callback if we have a callback and have seen enough
       if(callback and callback_every and examples_seen % callback_every == 0):
@@ -269,10 +269,10 @@ def gradientCheckTheano(model, x, y, h=0.001, error_threshold=0.01):
       # Estimate gradient using central difference formula
       param[i] = original + h
       param_T.set_value(param)
-      grad_plus = model.calculate_total_loss([x],[y])
+      grad_plus = model.calculateTotalLoss([x],[y])
       param[i] = original - h
       param_T.set_value(param)
-      grad_minus = model.calculate_total_loss([x],[y])
+      grad_minus = model.calculateTotalLoss([x],[y])
       estimated = (grad_plus - grad_minus) / (2 * h)
       # Set param back to original
       param_T.set_value(original)
