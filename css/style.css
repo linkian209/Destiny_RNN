@@ -48,6 +48,10 @@ section {
 	margin: 2px;
 }
 
+.perk span {
+	display: none;
+}
+
 .stats {
 	padding-left: 5px;
 }
@@ -177,5 +181,28 @@ only screen and (max-width: 770px) {
 
 	#perks {
 		width: 100%;
+	}
+	
+	.column{
+		float: none;
+	}
+	
+	.passive {
+		border: 0;
+	}
+	
+	.perk {
+		border: 0;
+		border-radius: 0;
+		width: 100%;
+	}
+	
+	.perk span {
+		display: inline-block;
+	}
+	
+	.perk img{
+		border-radius: 50%;
+		display: inline-block;
 	}
 }
