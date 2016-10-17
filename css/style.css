@@ -82,6 +82,9 @@
 	background-color: #2F4F4F;
 	display: inline-block;
 	color: white;
+	position: relative;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 #details {
@@ -163,29 +166,6 @@
 
 .desc {
 	font-style: italic;
-}
-
-.bar {
-  float: left;
-  display: inline-block;
-  height: 45px;
-  width: 100%;
-  padding: 12px 0;
-  margin-left: 10px;
-  margin-right: 5px;
-}
-
-.bar-track {
-	background-color: #778899;
-	display: inline-block;	
-	width: 100%;
-	position: relative;
-}
-
-.bar-fill {
-	background-color: white;
-	position: relative;
-	display: inline-block;
 }
 
 .contain {
@@ -270,6 +250,7 @@ only screen and (max-width: 1080px) {
 	
 	.perk {
 		border: 0;
+		background-color: #2F4F4F;
 		border-radius: 0;
 		width: 100%;
 	}
@@ -279,6 +260,14 @@ only screen and (max-width: 1080px) {
 	}
 	
 	.perk img{
+		background-color: #3c7bae;
+		border-radius: 50%;
+		display: inline-block;
+	}
+
+	.passive img {
+		background-color: lightgrey;
+		border: grey 2px solid;
 		border-radius: 50%;
 		display: inline-block;
 	}

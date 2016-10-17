@@ -10,7 +10,7 @@
 <div id='sidebar'>
 	<nav id='nav'>
 		<ul>
-			<li href='#intro'>Welcome</li>
+			<li href='#intro' class='active'>Welcome</li>
 			<li href='#one'>Results</li>
 		</ul>
 	</nav>
@@ -94,6 +94,12 @@ $(function() {
 	$('#pbar').progressbar({
 	  value: 47
 	});
+	
+	$(window).resize(function() {
+		$('#pbar').progressbar({
+		  value: 47
+		});
+	});
 });
 
 $(function() {
@@ -109,6 +115,36 @@ $(function() {
 		
 		$('#nav li').each(function(){
 			if($(this).attr('href') == $div.attr('href'))
+			{
+				$(this).addClass('active');
+			}
+			else
+			{
+				$(this).removeClass('active');
+			}
+		})
+	});
+});
+
+$(function() {
+	var introBot = $('#intro').offset().top + $('#intro').height();
+	var oneBot = $('#one').offset().top + $('#one').height();
+
+	$('#content').scroll(function(){
+        var stop = Math.round($('#content').scrollTop());
+		var div;
+
+		if(stop > introBot * .75)
+		{
+			div = '#one';
+		}
+		else
+		{
+			div = '#intro';
+		}
+
+		$('#nav li').each(function(){
+			if($(this).attr('href') == div)
 			{
 				$(this).addClass('active');
 			}
