@@ -1,65 +1,74 @@
 <html>
 <head>
-<link rel='stylesheet' type='text/css' href='css/style.css'>
 <link rel='stylesheet' type='text/css' href='css/bootstrap.min.css'>
+<link rel='stylesheet' type='text/css' href='js/jquery-ui.min.css'>
+<link rel='stylesheet' type='text/css' href='css/style.css'>
 <script type='text/javascript' src='js/jquery-3.1.1.min.js'></script>
+<script type='text/javascript' src='js/jquery-ui.js'></script>
 </head>
 <body>
-Hello!
-<br>
-<section id='one'>
-	<div id='gun'>
-		<div id='details'>
-			<div class='exotic'>
-				<span class='name'>GJALLERHORN</span>
-				<br>
-				<span class='gun-type'>Rocket Launcher</span>
-			</div>
-			<div class='stats'>
-				<div class='solar'>
-					<img src='img/Solar Damage_color.png' height='50' width='50'>&nbsp;<span style='font-size:50px'>365&nbsp;</span>ATTACK
+<div id='sidebar'>
+	<nav id='nav'>
+		<ul>
+			<li href='#intro'>Welcome</li>
+			<li href='#one'>Results</li>
+		</ul>
+	</nav>
+</div>
+<div id='content'>
+	<section id='intro'>
+		<div id='bg'>
+			<span id='title'>Destiny Recurrent Neural Network</span>
+		</div>
+	</section>
+	
+	<section id='one'>
+		<div id='gun'>
+			<div id='details'>
+				<div class='exotic'>
+					<span class='name'>GJALLERHORN</span>
+					<br>
+					<span class='gun-type'>Rocket Launcher</span>
 				</div>
-				<span class='desc'>"If there is beauty in destruction, why not also in its delivery?" - Feizel Crux</span>
-				<hr>
-				<div id='rof' class='contain'>
-					<div style="margin-right:5px;" class="row">
-						<span class="col-sm-3">Rate of Fire</span>
-						<div class="progress">
-							<div class="progress-bar progress-fill" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%">
-								<span class="sr-only">45% Complete</span>
-							</div>
-						</div>
+				<div class='stats'>
+					<div class='solar'>
+						<img src='img/Solar Damage_color.png' height='50' width='50'>&nbsp;<span style='font-size:50px'>365&nbsp;</span>ATTACK
+					</div>
+					<span class='desc'>"If there is beauty in destruction, why not also in its delivery?" - Feizel Crux</span>
+					<hr>
+					<div id='rof' class='contain'>
+						<span>Rate of Fire</span>
+						<div id='pbar'></div>
+					</div>
+				</div>
+			</div>
+			<div id='perks'>
+				<div class='column'>
+					<div id='solar' class='perk passive'>
+						<img src='img/Solar Damage.png'>
+						<span>Solar Damage - This weapon deals Solar Damage.</span>
+					</div>
+				</div>
+				<div class='column'>
+					<div id='soft_launch' class='perk'>
+						<img src='img/Soft Launch.png'>
+					</div>
+					<div id='soft_launch' class='perk'>
+						<img src='img/Soft Launch.png'>
+					</div>
+					<div id='soft_launch' class='perk'>
+						<img src='img/Soft Launch.png'>
+					</div>
+				</div>
+				<div class='column'>
+					<div id='tracking' class='perk'>
+						<img src='img/Tracking.png'>
 					</div>
 				</div>
 			</div>
 		</div>
-		<div id='perks'>
-			<div class='column'>
-				<div id='solar' class='perk passive'>
-					<img src='img/Solar Damage.png'>
-					<span>Solar Damage - This weapon deals Solar Damage.</span>
-				</div>
-			</div>
-			<div class='column'>
-				<div id='soft_launch' class='perk'>
-					<img src='img/Soft Launch.png'>
-				</div>
-				<div id='soft_launch' class='perk'>
-					<img src='img/Soft Launch.png'>
-				</div>
-				<div id='soft_launch' class='perk'>
-					<img src='img/Soft Launch.png'>
-				</div>
-			</div>
-			<div class='column'>
-				<div id='tracking' class='perk'>
-					<img src='img/Tracking.png'>
-				</div>
-			</div>
-		</div>
-	</div>
-</section>
-<br>
+	</section>
+</div>
 <div id='test'></div>
 <script type='text/javascript'>
 perks = {'solar':{'name':'Solar Damage', 'desc':'This weapon deals Solar Damage.'},
@@ -79,6 +88,36 @@ $(function() {
 	$('div.perk').mousemove(function(e) {
       $("div#pop-up").css('top', e.pageY + moveDown).css('left', e.pageX + moveLeft);
     });
+});
+
+$(function() {
+	$('#pbar').progressbar({
+	  value: 47
+	});
+});
+
+$(function() {
+	$('#nav li').click(function(){
+		if(!$(this).hasClass('active'))
+		{
+			$('#content').animate({
+				scrollTop: $($(this).attr('href')).offset().top
+			}, 500);
+		}
+		
+		$div = $(this);
+		
+		$('#nav li').each(function(){
+			if($(this).attr('href') == $div.attr('href'))
+			{
+				$(this).addClass('active');
+			}
+			else
+			{
+				$(this).removeClass('active');
+			}
+		})
+	});
 });
 /*
 $(function() {
