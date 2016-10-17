@@ -5,9 +5,9 @@
 
 #sidebar {
 	float: left;
-	width: 20%;
+	width: 10%;
 	height: 100%;
-	background-color: #708090;
+	background-color: #97a7a7;
 }
 
 #sidebar a {
@@ -24,11 +24,11 @@
 }
 
 #sidebar .active {
-	border-bottom: rgba(230, 138, 0, 1) 2px solid;
+	border-bottom: rgba(233, 203, 32, 1) 2px solid;
 }
 
 #sidebar li {
-	border-bottom: rgba(230, 138, 0, .3) 2px solid;
+	border-bottom: rgba(233, 203, 32, .3) 2px solid;
 	margin-bottom: 10px;
 	list-style: none;
 	cursor: pointer;
@@ -37,13 +37,13 @@
 
 #content {
 	float:left;
-	width: 80%;
+	width: 90%;
 	height: 100%;
 	overflow-y: scroll;
 }
 
 #intro {
-	background-color: #5e42a6;
+	background-color: #496565;
 	width: 100%;
 	height: calc(100% - 2em);
 }
@@ -71,8 +71,14 @@
 }
 
 #one {
-	background-color: #5e42a6;
-	padding: 20px;
+	background-color: #637b7b;
+	padding: 10%;
+	height: 100%;
+}
+
+#two {
+	background-color: #2F4F4F;
+	padding: 10%;
 	height: 100%;
 }
 
@@ -141,17 +147,22 @@
 
 .legendary {
 	width: 100%;
-	background-color: #e6c300;
+	background-color: #522f65;
 }
 
 .rare {
 	width: 100%;
-	background-color: #e6c300;
+	background-color: #5076a3;
+}
+
+.uncommon {
+	width: 100%;
+	background-color: #366f42;
 }
 
 .common {
 	width: 100%;
-	background-color: #e6c300;
+	background-color: #c3bcb4;
 }
 
 .name {

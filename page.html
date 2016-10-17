@@ -1,5 +1,6 @@
 <html>
 <head>
+<title>Destiny RNN</title>
 <link rel='stylesheet' type='text/css' href='css/bootstrap.min.css'>
 <link rel='stylesheet' type='text/css' href='js/jquery-ui.min.css'>
 <link rel='stylesheet' type='text/css' href='css/style.css'>
@@ -11,7 +12,8 @@
 	<nav id='nav'>
 		<ul>
 			<li href='#intro' class='active'>Welcome</li>
-			<li href='#one'>Results</li>
+			<li href='#one'>About</li>
+			<li href='#two'>Results</li>
 		</ul>
 	</nav>
 </div>
@@ -21,8 +23,12 @@
 			<span id='title'>Destiny Recurrent Neural Network</span>
 		</div>
 	</section>
-	
+
 	<section id='one'>
+
+	</section>
+	
+	<section id='two'>
 		<div id='gun'>
 			<div id='details'>
 				<div class='exotic'>
@@ -129,6 +135,7 @@ $(function() {
 $(function() {
 	var introBot = $('#intro').offset().top + $('#intro').height();
 	var oneBot = $('#one').offset().top + $('#one').height();
+	var twoBot = $('#two').offset().top + $('#one').height();
 
 	$('#content').scroll(function(){
         var stop = Math.round($('#content').scrollTop());
@@ -137,6 +144,10 @@ $(function() {
 		if(stop > introBot * .75)
 		{
 			div = '#one';
+		}
+		else if(stop > oneBot * .75)
+		{
+			div = '#two';
 		}
 		else
 		{
