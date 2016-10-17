@@ -20,12 +20,14 @@
 <div id='content'>
 	<section id='intro'>
 		<div id='bg'>
-			<span id='title'>Destiny Recurrent Neural Network</span>
+			<span class='title'>Destiny Recurrent Neural Network</span>
 		</div>
 	</section>
 
 	<section id='one'>
-
+		<div id='about'>
+			<span class='title'>Hello</span>
+		</div>
 	</section>
 	
 	<section id='two'>
@@ -109,11 +111,32 @@ $(function() {
 });
 
 $(function() {
+	var introTop = $('#intro').offset().top;
+	var oneTop = $('#one').offset().top;
+	var twoTop = $('#two').offset().top;
+
 	$('#nav li').click(function(){
 		if(!$(this).hasClass('active'))
 		{
+			var target = $(this).attr('href');
+			var moveTo = 0;
+			switch(target)
+			{
+				case '#intro':
+					moveTo = introTop;
+					break;
+				case '#one':
+					moveTo = oneTop;
+					break;
+				case '#two':
+					moveTo = twoTop;
+					break;
+				default:
+					moveTo = introTop;
+					break;
+			}
 			$('#content').animate({
-				scrollTop: $($(this).attr('href')).offset().top
+				scrollTop: moveTo
 			}, 500);
 		}
 		
@@ -135,13 +158,13 @@ $(function() {
 $(function() {
 	var introBot = $('#intro').offset().top + $('#intro').height();
 	var oneBot = $('#one').offset().top + $('#one').height();
-	var twoBot = $('#two').offset().top + $('#one').height();
+	var twoBot = $('#two').offset().top + $('#two').height();
 
 	$('#content').scroll(function(){
         var stop = Math.round($('#content').scrollTop());
 		var div;
 
-		if(stop > introBot * .75)
+		if(stop > introBot * .75 && stop < oneBot)
 		{
 			div = '#one';
 		}
