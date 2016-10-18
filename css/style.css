@@ -3,11 +3,15 @@
 	src: url(../font/Futura_ICG.ttf);
 }
 
+a{
+	color: #85ADCC;
+}
+
 #sidebar {
 	float: left;
 	width: 10%;
 	height: 100%;
-	background-color: #85ADCC;
+	background-color: #548CB8;
 }
 
 #sidebar a {
@@ -24,11 +28,11 @@
 }
 
 #sidebar .active {
-	border-bottom: rgba(242, 225, 128, 1) 2px solid;
+	border-bottom: rgba(233, 203, 32, 1) 2px solid;
 }
 
 #sidebar li {
-	border-bottom: rgba(242, 225, 128, .3) 2px solid;
+	border-bottom: rgba(233, 203, 32, .3) 2px solid;
 	margin-bottom: 10px;
 	list-style: none;
 	cursor: pointer;
@@ -85,6 +89,15 @@
 #about {
 	height: 100%;
 	width: 100%;
+	font-family: Futurist;
+}
+
+#about h2 {
+	color: white;
+}
+
+#about p {
+	color: white;
 }
 
 #gun {
