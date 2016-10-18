@@ -32,14 +32,14 @@
 			   I got the idea for this project <a href='https://np.reddit.com/r/hearthstone/comments/3cyi15/hearthstone_cards_as_created_by_a_neural_network/'>
 			   from a post in /r/hearthstone</a>, where a user took all of the cards currently 
 			   available in Hearthstone and put them through a neural network. After 
-			   training the network, the user then had the network generate cards. I found the results facinating!</p>
-			<p>I decided that I wanted to try this with Destiny Guns! So I began on my Python journey
+			   training the network, the user then had the network generate cards. I found the results facinating.</p>
+			<p>I decided that I wanted to try this with Destiny Guns. So I began on my Python journey
 			   In order to train the network, I wanted to give it a good representation of what a gun
 			   should be like in Destiny. To do this, I downloaded the Destiny Manifest, which is a large
-			   SQL table that contains information about every thing in the game. It is what fuels the game 
-			   and all companion applications! After downloading this manifest, I wrote a Python script to
-			   navigate through the manifest and output every possible roll of every gun in the game. I amassed
-			   100GB of text files containing all of these rolls!</p>
+			   SQL table that contains information about everything in the game and fuels all companion applications. 
+			   After downloading this manifest, I wrote a Python script to
+			   navigate through the manifest and output every possible rollF of every gun in the game. I amassed
+			   100GB of text files containing all of these rolls.</p>
 			<p>After creating all of the training data, I created the neural network. I decided to use
 			   a recurrent neural network, with 2 GRU layers. This particular type of neural network is good
 			   for relating previously created output with the current state. In other words, this network
@@ -47,9 +47,10 @@
 			   the help of the library Theano, which utilized the GPU of computer, I created a network that will
 			   learn from all of my training data. [Add some statistics from the training]</p>
 			<p>After training the network... [More to come]</p>
-			<p>I ran the network on Ubuntu Mate 16.04 LTS. Outlined below are my system statistics:</p>
+			<p>I ran the network on Ubuntu Mate 16.04 LTS 64-bit. Outlined below are my system statistics:</p>
 			<p><a href='https://github.com/linkian209/Destiny_RNN'>You can find the source code here.</a></p>
-			<h2>Thank you for reading! Enjoy the fruits of my labor!</h2>
+			<br>
+			<h2>Thank you for reading!</h2>
 		</div>
 	</section>
 	
