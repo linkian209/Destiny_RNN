@@ -67,7 +67,7 @@ a{
 .title {
 	font-family: Futurist;
 	color: white;
-	font-size: 30px;
+	font-size: 50px;
 	margin-left: 5%;
 	position: relative;
     top: 50%;
@@ -304,19 +304,21 @@ only screen and (max-width: 1080px) {
 	#sidebar {
 		float: none;
 		width: 100%;
-		height: 4%;
+		height: 5%;
 		background-color: #708090;
 	}
 
 	#content {
 		float: none;
 		width: 100%;
-		height: 96%;
+		height: 95%;
 		overflow-y: scroll;
+		font-size: 20px;
 	}
 	
 	#sidebar nav {
 		text-align: center;
+		font-size: 25px;
 	}
 	
 	#sidebar li {
