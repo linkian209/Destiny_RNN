@@ -77,18 +77,14 @@ a{
 #one {
 	background-color: #496565;
 	padding: 10%;
-	height: 100%;
 }
 
 #two {
 	background-color: #2F4F4F;
 	padding: 10%;
-	height: 100%;
 }
 
 #about {
-	height: 100%;
-	width: 100%;
 	font-family: Futurist;
 }
 
@@ -98,6 +94,7 @@ a{
 
 #about p {
 	color: white;
+	font-size: 20px;
 }
 
 #gun {
@@ -108,7 +105,6 @@ a{
 	color: white;
 	position: relative;
     top: 50%;
-    transform: translateY(-50%);
 }
 
 #details {
@@ -257,8 +253,17 @@ a{
 @media
 only screen and (max-width: 1080px) {
 	
+	#one {
+		padding: 10%;
+	}
+	
+	#one *{
+		display: inline-block;
+	}
+	
 	#gun {
 		width: 100%;
+		transform: none;
 	}
 	
 	#details {
@@ -305,7 +310,7 @@ only screen and (max-width: 1080px) {
 		float: none;
 		width: 100%;
 		height: 5%;
-		background-color: #708090;
+		background-color: #a1e2e3;
 	}
 
 	#content {
