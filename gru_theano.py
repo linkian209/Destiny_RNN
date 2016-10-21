@@ -3,7 +3,7 @@ import operator
 import theano
 import theano.tensor as T
 import numpy as np
-for theano.gradient import grad_clip
+from theano.gradient import grad_clip
 
 class GRUTheano:
 

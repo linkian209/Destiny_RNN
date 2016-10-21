@@ -9,6 +9,7 @@ import io
 import array
 import zipfile
 import numpy as np
+from gru_theano import GRUTheano
 from tqdm import tqdm
 from datetime import datetime
 
@@ -149,15 +150,15 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
    tokenized = []
 
    # Read in data
-   for cur_archive in tqdm(range(len(filenames)),desc="Archives"):
+   for cur_archive in tqdm(filenames,desc="Archives"):
       # Get the contents of the current archive
-      zf = zipfile.ZipFile(cur_archive, 'a', zipfile.ZIP_DEFLATED, AllowZip64=True)
+      zf = zipfile.ZipFile(cur_archive, 'a', zipfile.ZIP_DEFLATED, allowZip64=True)
       zf.extract('contents.txt')
       with open('contents.txt','r') as f:
          files = f.read().split('\n')
 
       # Loop through files and read the data
-      for cur_file in tqdm(range(len(files)), desc="Files"):
+      for cur_file in tqdm(files, desc="Files"):
          # Extract the current file
          zf.extract(cur_file)
          # Get the rolls from it and tokenize it
@@ -180,13 +181,13 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
    index_to_word = ["<MASK/>", UNKNOWN_TOKEN] + [x[0] for x in vocab]
    word_to_index = dict([(w,i) for i,w in enumerate(index_to_word)])
 
-  # Replace missing words with the unknown token
-  for i, sent in enumerate(tokenized):
+   # Replace missing words with the unknown token
+   for i, sent in enumerate(tokenized):
       tokenized[i] = [w if w in word_to_index else UNKNOWN_TOKEN for w in sent]
 
-  # Create Training Data Arrays
-  x_train = np.asarray([[word_to_index[w] for w in sent[:-1]] for sent in tokenized])
-  y_train = np.asarray([[word_to_index[w] for w in sent[1:]] for sent in tokenized])
+   # Create Training Data Arrays
+   x_train = np.asarray([[word_to_index[w] for w in sent[:-1]] for sent in tokenized])
+   y_train = np.asarray([[word_to_index[w] for w in sent[1:]] for sent in tokenized])
 
    return x_train, y_train, word_to_index, index_to_word
 
@@ -211,14 +212,16 @@ def trainWithSGD(model, x_train, y_train, learning_rate=.001, nepoch=20,
 
 # saveModelParamsTheano
 # Takes an inputted model and filename and outputs the model to file
-def saveModelParamsTheano(model, outfile):
+def saveModelParamsTheano(model, word_to_index, index_to_word, outfile):
   np.savez(outfile,
     E=model.E.get_value(),
     U=model.U.get_value(),
     W=model.W.get_value(),
     V=model.V.get_value(),
     b=model.b.get_value(),
-    c=model.c.get_value())
+    c=model.c.get_value(),
+    word_to_index=word_to_index,
+    index_to_word=index_to_word)
 
   print "Saved model to %s!" % outfile
 
@@ -242,7 +245,7 @@ def loadModelParamsTheano(path, modelClass=GRUTheano):
   model.b.set_value(b)
   model.c.set_value(c)
 
-  return model
+  return model, npzfile['word_to_index'], npzfile['index_to_word']
 
 # gradientCheckTheano
 # Takes the inputted model and training data to check the model's parameters
@@ -324,9 +327,15 @@ def generateGun(model, index_to_word, word_to_index, min_length=20):
 # generateGuns
 # Given a model, word indices, and a number of guns to make, this function
 # generates guns from the model
-def generateGuns(model, n, index_to_word, word_to_index):
-  time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-  with open("guns_%s.txt" % time, 'w') as f:
+def generateGuns(model, n, index_to_word, word_to_index, filename=None):
+  # retval is a list of guns
+  retval = []
+  # If we did not get a filename, make a default one
+  if not filename:
+    time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = 'guns_%s.txt' % time
+
+  with open(filename, 'w') as f:
     for i in tqdm(range(n), desc="Guns"):
       sent = None
       while not sent:
@@ -334,3 +343,6 @@ def generateGuns(model, n, index_to_word, word_to_index):
 
       f.write(" ".join(sent))
       f.write('\n')
+      retval.append(' '.join(sent))
+
+  return retval
