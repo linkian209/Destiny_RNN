@@ -20,7 +20,7 @@ class GRUTheano:
     W = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (6, hidden_dim, hidden_dim))
     V = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (word_dim, hidden_dim))
     b = np.zeros((6, hidden_dim))
-    x = np.zeros(word_dim)
+    c = np.zeros(word_dim)
     # Create Theano shared variables
     self.E = theano.shared(name='E', value=E.astype(theano.config.floatX))
     self.U = theano.shared(name='U', value=W.astype(theano.config.floatX))
@@ -53,8 +53,8 @@ class GRUTheano:
 
       # GRU Layer 1
       # Optimize by doing major multiplactions now
-      U_c = U.transpose().dot(diag(x_e, x_e, x_e, 1, 1, 1)).transpose()
-      W_c = W.transpose().dot(diag(s_t1_prev, s_t1_prev, 1, s_t2_prev, s_t2_prev, 1)).transpose()
+      U_c = U.transpose().dot(np.diag([x_e, x_e, x_e, 1, 1, 1])).transpose()
+      W_c = W.transpose().dot(np.diag([s_t1_prev, s_t1_prev, 1, s_t2_prev, s_t2_prev, 1])).transpose()
 
       z_t1 = T.nnet.hard_sigmoid(U_c[0] + W_c[0] + b[0])
       r_t1 = T.nnet.hard_sigmoid(U_c[1] + W_c[1] + b[1])
@@ -63,7 +63,7 @@ class GRUTheano:
 
       # GRU Layer 2
       # Do some more large matrix multiplaction
-      U_c = U.transpose().dot(diag(1, 1, 1, s_t1, s_t1, s_t1)).transpose()
+      U_c = U.transpose().dot(np.diag([1, 1, 1, s_t1, s_t1, s_t1])).transpose()
 
       z_t2 = T.nnet.hard_sigmoid(U_c[3] + W_c[3] + b[3])
       r_t2 = T.nnet.hard_sigmoid(U_c[4] + W_c[4] + b[4])
@@ -77,7 +77,7 @@ class GRUTheano:
 
     # Theano Looping, using scan
     [o, s, s2], updates = theano.scan(
-      forward_prop_step,
+      forwardPropStep,
       sequences=x,
       truncate_gradient=self.bptt_truncate,
       outputs_info=[None,

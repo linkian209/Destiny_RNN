@@ -8,6 +8,7 @@ import operator
 import io
 import array
 import zipfile
+import mmap
 import numpy as np
 from gru_theano import GRUTheano
 from tqdm import tqdm
@@ -140,6 +141,15 @@ def init():
          all_items[items[i]['itemName']] = {'grid': items[i]['talentGridHash'], 'hash': i}
    return(data,items,grids,all_items)
 
+# getLines
+# Generator to get lines from an inputted file
+def getLines(f, max_rolls):
+   num_rolls = 0
+   for line in f:
+      if num_rolls <= max_rolls:
+         num_rolls += 1
+         yield line.split(' ')
+
 # loadData
 # Takes in a list of archive file names and loads in the training data
 def loadData(filenames,vocab_size=2000, min_sent_chars=0):
@@ -150,6 +160,7 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
    tokenized = []
 
    # Read in data
+   print 'Beginning data load...'
    for cur_archive in tqdm(filenames,desc="Archives"):
       # Get the contents of the current archive
       zf = zipfile.ZipFile(cur_archive, 'a', zipfile.ZIP_DEFLATED, allowZip64=True)
@@ -157,14 +168,16 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
       with open('contents.txt','r') as f:
          files = f.read().split('\n')
 
+      files = [x for x in files if x]
+
       # Loop through files and read the data
       for cur_file in tqdm(files, desc="Files"):
          # Extract the current file
          zf.extract(cur_file)
-         # Get the rolls from it and tokenize it
+         # Get the first 2000 rolls and tokenize them
+         num_rolls = 0
          with open(cur_file, 'r') as f:
-            rolls = f.readlines()
-         tokenized += [nltk.word_tokenize(roll) for roll in rolls]
+            tokenized += list(getLines(f, 3000))
          # Delete the current file
          os.remove(cur_file)
 
@@ -172,22 +185,32 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
       # and start on the next one
       os.remove('contents.txt')
 
+   print '\nData load complete!'
+
    # After looping through the data, get the most used words and use them
    # as our vocab
+   print 'Creating vocab...'
    word_freq = nltk.FreqDist(itertools.chain(*tokenized))
    vocab = sorted(word_freq.items(), key=lambda x: (x[1], x[0]))
    vocab = sorted(vocab, key=operator.itemgetter(1))
+   print 'Vocab Created!'
 
-   index_to_word = ["<MASK/>", UNKNOWN_TOKEN] + [x[0] for x in vocab]
-   word_to_index = dict([(w,i) for i,w in enumerate(index_to_word)])
+   print 'Creating Indices...'
+   index_to_word = ["<MASK/>", UNKNOWN_TOKEN] + [x[0] for x in tqdm(vocab, desc='Index to Word')]
+   word_to_index = dict([(w,i) for i,w in tqdm(enumerate(index_to_word), desc='Word to Index')])
+   print 'Indices Created!'
 
    # Replace missing words with the unknown token
-   for i, sent in enumerate(tokenized):
+   print 'Checking for unknown tokens....'
+   for i, sent in tqdm(enumerate(tokenized), desc='Tokenized'):
       tokenized[i] = [w if w in word_to_index else UNKNOWN_TOKEN for w in sent]
+   print 'Complete!'
 
    # Create Training Data Arrays
-   x_train = np.asarray([[word_to_index[w] for w in sent[:-1]] for sent in tokenized])
-   y_train = np.asarray([[word_to_index[w] for w in sent[1:]] for sent in tokenized])
+   print 'Creating training arrays...'
+   x_train = np.asarray([[word_to_index[w] for w in tqdm(sent[:-1], desc='Words')] for sent in tqdm(tokenized,desc='x_train')])
+   y_train = np.asarray([[word_to_index[w] for w in tqdm(sent[1:], desc='Words')] for sent in tqdm(tokenized, desc='y_train')])
+   print '\nTraining arrays created!'
 
    return x_train, y_train, word_to_index, index_to_word
 

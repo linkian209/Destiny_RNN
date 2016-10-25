@@ -29,12 +29,13 @@ print_every = 25000
 log_file = open('log.txt','w')
 
 # Load in data
-print 'Beginning Data Load...'
+print 'Constructing training data...'
 x_train, y_train, word_to_index, index_to_word = loadData(input_data_file, vocab_size)
-print 'Data Load Complete!\n'
+print 'Training Data Assembly Complete!\n'
 
 # Build Model
 model = GRUTheano(vocab_size, hidden_dim=hidden_dim, bptt_truncate=-1)
+saveModelParams(model, word_to_index, index_to_word, model_output_file)
 
 # Do one SGD step and print time for a step
 print 'Performing one SGD step...'
