@@ -52,22 +52,15 @@ class GRUTheano:
       x_e = E[:,x_t]
 
       # GRU Layer 1
-      # Optimize by doing major multiplactions now
-      U_c = U.transpose().dot(np.diag([x_e, x_e, x_e, 1, 1, 1])).transpose()
-      W_c = W.transpose().dot(np.diag([s_t1_prev, s_t1_prev, 1, s_t2_prev, s_t2_prev, 1])).transpose()
-
-      z_t1 = T.nnet.hard_sigmoid(U_c[0] + W_c[0] + b[0])
-      r_t1 = T.nnet.hard_sigmoid(U_c[1] + W_c[1] + b[1])
-      c_t1 = T.tanh(U_c[2] + W[2].dot(s_t1_prev * r_t1) + b[2])
+      z_t1 = T.nnet.hard_sigmoid(U[0].dot(x_e) + W[0].dot(s_t1_prev) + b[0])
+      r_t1 = T.nnet.hard_sigmoid(U[1].dot(x_e) + W[1].dot(s_t1_prev) + b[1])
+      c_t1 = T.tanh(U[2].dot(x_e) + W[2].dot(s_t1_prev * r_t1) + b[2])
       s_t1 = (T.ones_like(z_t1) - z_t1) * c_t1 + z_t1 * s_t1_prev
 
       # GRU Layer 2
-      # Do some more large matrix multiplaction
-      U_c = U.transpose().dot(np.diag([1, 1, 1, s_t1, s_t1, s_t1])).transpose()
-
-      z_t2 = T.nnet.hard_sigmoid(U_c[3] + W_c[3] + b[3])
-      r_t2 = T.nnet.hard_sigmoid(U_c[4] + W_c[4] + b[4])
-      c_t2 = T.tanh(U_c[5] + W[5].dot(s_t2_prev * r_t2) + b[5])
+      z_t2 = T.nnet.hard_sigmoid(U[3].dot(s_t1) + W[3].dot(s_t2_prev) + b[3])
+      r_t2 = T.nnet.hard_sigmoid(U[4].dot(s_t1) + W[4].dot(s_t2_prev) + b[4])
+      c_t2 = T.tanh(U[5].dot(s_t1) + W[5].dot(s_t2_prev * r_t2) + b[5])
       s_t2 = (T.ones_like(z_t2) - z_t2) * c_t2 + z_t2 * s_t2_prev
 
       # Final calculation
