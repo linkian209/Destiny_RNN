@@ -23,7 +23,7 @@ vocab_size = 5000
 embedding_dim = 48
 hidden_dim = 128
 nepoch = 20
-model_output_file = "GRU-%s.dat" % datetime.now().strftime('%Y-%m-%d-%H-%M')
+model_output_file = "GRU-%s" % datetime.now().strftime('%Y-%m-%d-%H-%M')
 input_data_file = ['archive_0.zip']
 print_every = 25000
 log_file = open('log.txt','w')
@@ -34,8 +34,10 @@ x_train, y_train, word_to_index, index_to_word = loadData(input_data_file, vocab
 print 'Training Data Assembly Complete!\n'
 
 # Build Model
+print 'Creating model...'
 model = GRUTheano(vocab_size, hidden_dim=hidden_dim, bptt_truncate=-1)
 saveModelParams(model, word_to_index, index_to_word, model_output_file)
+print 'Model created and initial state saved!'
 
 # Do one SGD step and print time for a step
 print 'Performing one SGD step...'

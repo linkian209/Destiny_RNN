@@ -235,9 +235,9 @@ def trainWithSGD(model, x_train, y_train, learning_rate=.001, nepoch=20,
   # Return the model once we complete training
   return model
 
-# saveModelParamsTheano
+# saveModelParams
 # Takes an inputted model and filename and outputs the model to file
-def saveModelParamsTheano(model, word_to_index, index_to_word, outfile):
+def saveModelParams(model, word_to_index, index_to_word, outfile):
   np.savez(outfile,
     E=model.E.get_value(),
     U=model.U.get_value(),
@@ -250,10 +250,10 @@ def saveModelParamsTheano(model, word_to_index, index_to_word, outfile):
 
   print "Saved model to %s!" % outfile
 
-# loadModelParamsTheano
+# loadModelParams
 # Takes in a path to a file, loads in the data, and builds a model from
 # the saved data
-def loadModelParamsTheano(path, modelClass=GRUTheano):
+def loadModelParams(path, modelClass=GRUTheano):
   # Load data and params
   npzfile = np.load(path)
   E, U, W, V = npzfile["E"], npzfile["U"], npzfile["W"], npzfile["V"]
