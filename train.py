@@ -42,13 +42,12 @@ print 'Performing one SGD step...'
 t1 = time.time()
 model.sgdStep(x_train[10], y_train[10], learning_rate)
 t2 = time.time()
-print 'Complete!\nSGD Step Time: %f milliseconds' % ((t2 -t1)/1000.0)
+print 'Complete!\nSGD Step Time: %f milliseconds' % ((t2 -t1) * 1000.0)
 
 # Begin training
 print 'Beginning Training over %d epochs...' % nepoch
-for epoch in tqdm(range(nepoch),desc='Epochs'):
-  trainWithSGD(model, x_train, y_train, learning_rate=learning_rate,
-               nepoch=1, decay=.9, callback_every=print_every,
+model = trainWithSGD(model, x_train, y_train, learning_rate=learning_rate,
+               nepoch=20, decay=.9, callback_every=print_every,
                callback=sgdCallback)
 
 # Training is complete! Save trained model

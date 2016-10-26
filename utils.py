@@ -17,7 +17,7 @@ from datetime import datetime
 # Globals
 UNKNOWN_TOKEN = 'UNKNOWN_TOKEN'
 BEGIN_TOKEN = 'BEGIN_GUN'
-END_TOKEN = 'GUN_END'
+END_TOKEN = 'END_GUN'
 
 # makeGrid
 # This function creates the iterable grid from the Destiny Manifest
@@ -219,8 +219,10 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
 # over the data to train the model
 def trainWithSGD(model, x_train, y_train, learning_rate=.001, nepoch=20,
   decay=0.9, callback_every=10000, callback=None):
-
+  # Keep track of number examples seen for the callback
   examples_seen = 0
+
+  # Loop through epochs
   for epoch in tqdm(range(nepoch), desc='Epochs'):
     for i in tqdm(np.random.permutation(len(y_train)), desc='Example'):
       # Do one step with Stochastic Gradient Descent
