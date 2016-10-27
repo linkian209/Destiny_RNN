@@ -17,14 +17,16 @@ class GRUTheano:
     # Initialize network parameters
     E = np.random.uniform(-np.sqrt(1./word_dim), np.sqrt(1./word_dim), (hidden_dim, word_dim))
     U = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (6, hidden_dim, hidden_dim))
+    U_c = U.dot(E)
     W = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (6, hidden_dim, hidden_dim))
     V = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (word_dim, hidden_dim))
     b = np.zeros((6, hidden_dim))
     c = np.zeros(word_dim)
     # Create Theano shared variables
     self.E = theano.shared(name='E', value=E.astype(theano.config.floatX))
-    self.U = theano.shared(name='U', value=W.astype(theano.config.floatX))
-    self.W = theano.shared(name='W', value=U.astype(theano.config.floatX))
+    self.U = theano.shared(name='U', value=U.astype(theano.config.floatX))
+    self.U_c = theano.shared(name='U_c', value=U_c.astype(theano.config.floatX))
+    self.W = theano.shared(name='W', value=W.astype(theano.config.floatX))
     self.V = theano.shared(name='V', value=V.astype(theano.config.floatX))
     self.b = theano.shared(name='b', value=b.astype(theano.config.floatX))
     self.c = theano.shared(name='c', value=c.astype(theano.config.floatX))
@@ -42,33 +44,34 @@ class GRUTheano:
 
   def __theano_build__(self):
     E, U, W, V, b, c = self.E, self.U, self.W, self.V, self.b, self.c
+    U_c = self.U_c
 
     # Theano Vectors
     x = T.ivector('x')
     y = T.ivector('y')
 
-    def forwardPropStep(x_t, s_t1_prev, s_t2_prev):
+    def forwardPropStep(x_t, s_t1_prev, s_t2_prev, debug=False):
       # Word embedding layer
       x_e = E[:,x_t]
 
       # Large Matrix Multiplacations
-      U_c = U.dot(x_e)
+      #U_c = U.dot(x_e)
       W_c = W.dot(s_t1_prev)
 
       # GRU Layer 1
-      z_t1 = T.nnet.hard_sigmoid(U_c[0] + W_c[0] + b[0])
-      r_t1 = T.nnet.hard_sigmoid(U_c[1] + W_c[1] + b[1])
-      c_t1 = T.tanh(U_c[2] + W[2].dot(s_t1_prev * r_t1) + b[2])
+      z_t1 = T.nnet.hard_sigmoid(U_c[0][:,x_t] + W_c[0] + b[0])
+      r_t1 = T.nnet.hard_sigmoid(U_c[1][:,x_t] + W_c[1] + b[1])
+      c_t1 = T.tanh(U_c[2][:,x_t] + W[2].dot(s_t1_prev * r_t1) + b[2])
       s_t1 = (T.ones_like(z_t1) - z_t1) * c_t1 + z_t1 * s_t1_prev
 
       # More Large Matrix Multiplications
-      U_c = U.dot(s_t1)
+      U_t = U.dot(s_t1) + 0*x_e
       W_c = W.dot(s_t2_prev)
 
       # GRU Layer 2
-      z_t2 = T.nnet.hard_sigmoid(U_c[3] + W_c[3] + b[3])
-      r_t2 = T.nnet.hard_sigmoid(U_c[4] + W_c[4] + b[4])
-      c_t2 = T.tanh(U_c[5] + W[5].dot(s_t2_prev * r_t2) + b[5])
+      z_t2 = T.nnet.hard_sigmoid(U_t[3] + W_c[3] + b[3])
+      r_t2 = T.nnet.hard_sigmoid(U_t[4] + W_c[4] + b[4])
+      c_t2 = T.tanh(U_t[5] + W[5].dot(s_t2_prev * r_t2) + b[5])
       s_t2 = (T.ones_like(z_t2) - z_t2) * c_t2 + z_t2 * s_t2_prev
 
       # Final calculation
@@ -121,10 +124,11 @@ class GRUTheano:
     # SGD Step function
     # This function is the function that trains the model
     self.sgdStep = theano.function(
-      [x, y, learning_rate, theano.Param(decay, default=0.9)],
+      [x, y, learning_rate, theano.In(decay, value=0.9)],
       [],
       updates=[(E, E - learning_rate * dE / T.sqrt(mE + 1e-6)),
                (U, U - learning_rate * dU / T.sqrt(mU + 1e-6)),
+               (U_c, U.dot(E)),
                (W, W - learning_rate * dW / T.sqrt(mW + 1e-6)),
                (V, V - learning_rate * dV / T.sqrt(mV + 1e-6)),
                (b, b - learning_rate * db / T.sqrt(mb + 1e-6)),

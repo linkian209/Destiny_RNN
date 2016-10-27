@@ -148,7 +148,7 @@ def getLines(f, max_rolls):
    for line in f:
       if num_rolls <= max_rolls:
          num_rolls += 1
-         yield line.split(' ')
+         yield line.replace('\n','').split(' ')
 
 # loadData
 # Takes in a list of archive file names and loads in the training data
