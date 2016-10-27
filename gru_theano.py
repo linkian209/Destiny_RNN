@@ -50,7 +50,7 @@ class GRUTheano:
     x = T.ivector('x')
     y = T.ivector('y')
 
-    def forwardPropStep(x_t, s_t1_prev, s_t2_prev, debug=False):
+    def forwardPropStep(x_t, s_t1_prev, s_t2_prev):
       # Word embedding layer
       x_e = E[:,x_t]
 
@@ -65,6 +65,7 @@ class GRUTheano:
       s_t1 = (T.ones_like(z_t1) - z_t1) * c_t1 + z_t1 * s_t1_prev
 
       # More Large Matrix Multiplications
+      # The + 0*x_e is so the E matrix gets updated every step
       U_t = U.dot(s_t1) + 0*x_e
       W_c = W.dot(s_t2_prev)
 
