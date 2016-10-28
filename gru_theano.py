@@ -17,7 +17,6 @@ class GRUTheano:
     # Initialize network parameters
     E = np.random.uniform(-np.sqrt(1./word_dim), np.sqrt(1./word_dim), (hidden_dim, word_dim))
     U = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (6, hidden_dim, hidden_dim))
-    U_c = U.dot(E)
     W = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (6, hidden_dim, hidden_dim))
     V = np.random.uniform(-np.sqrt(1./hidden_dim), np.sqrt(1./hidden_dim), (word_dim, hidden_dim))
     b = np.zeros((6, hidden_dim))
@@ -25,7 +24,6 @@ class GRUTheano:
     # Create Theano shared variables
     self.E = theano.shared(name='E', value=E.astype(theano.config.floatX))
     self.U = theano.shared(name='U', value=U.astype(theano.config.floatX))
-    self.U_c = theano.shared(name='U_c', value=U_c.astype(theano.config.floatX))
     self.W = theano.shared(name='W', value=W.astype(theano.config.floatX))
     self.V = theano.shared(name='V', value=V.astype(theano.config.floatX))
     self.b = theano.shared(name='b', value=b.astype(theano.config.floatX))
@@ -44,7 +42,6 @@ class GRUTheano:
 
   def __theano_build__(self):
     E, U, W, V, b, c = self.E, self.U, self.W, self.V, self.b, self.c
-    U_c = self.U_c
 
     # Theano Vectors
     x = T.ivector('x')
@@ -55,18 +52,17 @@ class GRUTheano:
       x_e = E[:,x_t]
 
       # Large Matrix Multiplacations
-      #U_c = U.dot(x_e)
+      U_c = U.dot(x_e)
       W_c = W.dot(s_t1_prev)
 
       # GRU Layer 1
-      z_t1 = T.nnet.hard_sigmoid(U_c[0][:,x_t] + W_c[0] + b[0])
-      r_t1 = T.nnet.hard_sigmoid(U_c[1][:,x_t] + W_c[1] + b[1])
-      c_t1 = T.tanh(U_c[2][:,x_t] + W[2].dot(s_t1_prev * r_t1) + b[2])
+      z_t1 = T.nnet.hard_sigmoid(U_c[0] + W_c[0] + b[0])
+      r_t1 = T.nnet.hard_sigmoid(U_c[1] + W_c[1] + b[1])
+      c_t1 = T.tanh(U_c[2] + W[2].dot(s_t1_prev * r_t1) + b[2])
       s_t1 = (T.ones_like(z_t1) - z_t1) * c_t1 + z_t1 * s_t1_prev
 
       # More Large Matrix Multiplications
-      # The + 0*x_e is so the E matrix gets updated every step
-      U_t = U.dot(s_t1) + 0*x_e
+      U_t = U.dot(s_t1)
       W_c = W.dot(s_t2_prev)
 
       # GRU Layer 2
@@ -129,7 +125,6 @@ class GRUTheano:
       [],
       updates=[(E, E - learning_rate * dE / T.sqrt(mE + 1e-6)),
                (U, U - learning_rate * dU / T.sqrt(mU + 1e-6)),
-               (U_c, U.dot(E)),
                (W, W - learning_rate * dW / T.sqrt(mW + 1e-6)),
                (V, V - learning_rate * dV / T.sqrt(mV + 1e-6)),
                (b, b - learning_rate * db / T.sqrt(mb + 1e-6)),

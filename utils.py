@@ -145,10 +145,11 @@ def init():
 # getLines
 # Generator to get lines from an inputted file
 def getLines(f, max_rolls):
-   num_rolls = 0
+   num_got = 0
+   # Use probabilistic sampling to get around max_rolls lines
    for line in f:
-      if num_rolls <= max_rolls:
-         num_rolls += 1
+      if np.random.rand() > (num_got / (max_rolls+0.0)):
+         num_got += 1
          yield line.replace('\n','').split(' ')
 
 # loadData
@@ -175,10 +176,10 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
       for cur_file in tqdm(files, desc="Files"):
          # Extract the current file
          zf.extract(cur_file)
-         # Get the first 2000 rolls and tokenize them
+         # Get the first 500 rolls and tokenize them
          num_rolls = 0
          with open(cur_file, 'r') as f:
-            tokenized += list(getLines(f, 3000))
+            tokenized += list(getLines(f, 300))
          # Delete the current file
          os.remove(cur_file)
 
