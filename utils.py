@@ -12,6 +12,7 @@ import mmap
 import numpy as np
 from gru_theano import GRUTheano
 from tqdm import tqdm
+from pprint import pprint
 from datetime import datetime
 
 # Globals
@@ -269,8 +270,9 @@ def loadModelParams(path, modelClass=GRUTheano):
   model.V.set_value(V)
   model.b.set_value(b)
   model.c.set_value(c)
+  print "Complete!"
 
-  return model, npzfile['word_to_index'], npzfile['index_to_word']
+  return model, npzfile['word_to_index'].item(), npzfile['index_to_word'].tolist()
 
 # gradientCheckTheano
 # Takes the inputted model and training data to check the model's parameters
@@ -339,15 +341,15 @@ def generateGun(model, index_to_word, word_to_index, min_length=20):
     next_word_prob = model.predict(new_gun)[-1]
     samples = np.random.multinomial(1, next_word_prob)
     sampled_word = np.argmax(samples)
-    new_sentece.append(sampled_word)
+    new_gun.append(sampled_word)
     # Make sure we aren't stuck and don't have an unknown_token
-    if len(new_sentence) > 300 or sampled_word == word_to_index[UNKNOWN_TOKEN]:
+    if len(new_gun) > 400 or sampled_word == word_to_index[UNKNOWN_TOKEN]:
       return None
 
-  if len(new_sentence) < min_length:
+  if len(new_gun) < min_length:
     return None
 
-  return new_sentence
+  return [index_to_word[x] if x in index_to_word else UNKNOWN_TOKEN for x in new_gun]
 
 # generateGuns
 # Given a model, word indices, and a number of guns to make, this function
@@ -366,6 +368,7 @@ def generateGuns(model, n, index_to_word, word_to_index, filename=None):
       while not sent:
         sent = generateGun(model, index_to_word, word_to_index)
 
+      pprint(sent)
       f.write(" ".join(sent))
       f.write('\n')
       retval.append(' '.join(sent))
