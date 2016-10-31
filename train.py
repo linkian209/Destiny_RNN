@@ -8,9 +8,10 @@ from gru_theano import GRUTheano
 # SGD Callback function
 def sgdCallback(model, num_examples):
   dt = datetime.now().isoformat()
-  loss = model.calculateLoss(x_train[:10000], y_train[:10000])
+  loss = model.calculateLoss(x_train, y_train)
   log_file.write('%s (%d)\n' % (dt, num_examples))
   log_file.write('-----------------------------------------------------\n')
+  log_file.write('Average Loss over %d training data: %f' % (len(x_train),loss))
   examples = generateGuns(model, 3, index_to_word, word_to_index)
   log_file.write('\n'.join(examples))
   log_file.write('\nSaving model..\n')
