@@ -176,10 +176,10 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
       for cur_file in tqdm(files, desc="Files"):
          # Extract the current file
          zf.extract(cur_file)
-         # Get the first 500 rolls and tokenize them
+         # Get the first 100 rolls and tokenize them
          num_rolls = 0
          with open(cur_file, 'r') as f:
-            tokenized += list(getLines(f, 300))
+            tokenized += list(getLines(f, 100))
          # Delete the current file
          os.remove(cur_file)
 
