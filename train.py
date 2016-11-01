@@ -12,11 +12,11 @@ def sgdCallback(model, num_examples):
   log_file.write('%s (%d)\n' % (dt, num_examples))
   log_file.write('-----------------------------------------------------\n')
   log_file.write('Average Loss over %d training data: %f' % (len(x_train),loss))
-  examples = generateGuns(model, 3, index_to_word, word_to_index)
-  log_file.write('\n'.join(examples))
   log_file.write('\nSaving model..\n')
   saveModelParams(model, word_to_index, index_to_word, model_output_file)
-  log_file.write('Save Complete!\n\n')
+  log_file.write('Save Complete!\n')
+  examples = generateGuns(model, 3, index_to_word, word_to_index)
+  log_file.write('\n'.join(examples))
 
 # Script Data
 learning_rate = .001
