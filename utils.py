@@ -8,12 +8,12 @@ import operator
 import io
 import array
 import zipfile
-import mmap
 import numpy as np
 from gru_theano import GRUTheano
 from tqdm import tqdm
 from pprint import pprint
 from datetime import datetime
+from decimal import Decimal
 
 # Globals
 UNKNOWN_TOKEN = 'UNKNOWN_TOKEN'
@@ -179,7 +179,7 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
          # Get the first 100 rolls and tokenize them
          num_rolls = 0
          with open(cur_file, 'r') as f:
-            tokenized += list(getLines(f, 100))
+            tokenized += list(getLines(f, 50))
          # Delete the current file
          os.remove(cur_file)
 
@@ -325,6 +325,19 @@ def gradientCheckTheano(model, x, y, h=0.001, error_threshold=0.01):
 
     print "Gradient check for param %s passed!" % name
 
+# float_to_decimal
+# Converts floats to decimal
+def float_to_decimal(f):
+    n, d = f.as_integer_ratio()
+    numerator, denominator = Decimal(n), Decimal(d)
+    ctx = Context(prec=60)
+    result = ctx.divide(numerator, denominator)
+    while ctx.flags[Inexact]:
+        ctx.flags[Inexact] = False
+        ctx.prec *= 2
+        result = ctx.divide(numerator, denominator)
+    return result
+
 # generateGun
 # Takes in the trained model and the word indices and returns a gun
 def generateGun(model, index_to_word, word_to_index, min_length=20):
@@ -334,16 +347,26 @@ def generateGun(model, index_to_word, word_to_index, min_length=20):
   # to make sure we aren't getting caught in some loop
   while not new_gun[-1] == word_to_index[END_TOKEN]:
     next_word_prob = model.predict(new_gun)[-1]
-    samples = np.random.multinomial(1, next_word_prob)
-    sampled_word = np.argmax(samples)
+    print 'Before: '
+    print Decimal(sum(next_word_prob))
+	# Normalize prediction output
+    if Decimal(sum(next_word_prob)) > 1:
+        next_word_prob = np.divide(next_word_prob, sum(next_word_prob))
+    print 'After: '
+    print Decimal(sum(next_word_prob))
+	# Loop to make sure we don't sample an unknown token
+    sampled_word = word_to_index[UNKNOWN_TOKEN]
+    while sampled_word == word_to_index[UNKNOWN_TOKEN]:	
+        samples = np.random.multinomial(1, next_word_prob)
+        sampled_word = np.argmax(next_word_prob)
     new_gun.append(sampled_word)
     # Make sure we aren't stuck and don't have an unknown_token
-    if len(new_gun) > 400 or sampled_word == word_to_index[UNKNOWN_TOKEN]:
+    if len(new_gun) > 400:
       return None
-
+    #
   if len(new_gun) < min_length:
     return None
-
+  #
   return [index_to_word[x] if x in index_to_word else UNKNOWN_TOKEN for x in new_gun]
 
 # generateGuns
