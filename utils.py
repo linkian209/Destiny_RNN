@@ -213,7 +213,7 @@ def getLines(f, max_rolls):
 
 # getLinesChars
 # Generator to get lines from an inputted file as a list of chars
-def getLines(f, max_rolls):
+def getLinesChars(f, max_rolls):
    num_got = 0
    # Use probabilistic sampling to get around max_rolls lines
    for line in f:
@@ -223,7 +223,7 @@ def getLines(f, max_rolls):
 
 # loadData
 # Takes in a list of archive file names and loads in the training data
-def loadData(filenames,vocab_size=2000, min_sent_chars=0):
+def loadData(filenames,vocab_size=2000, max_rolls=1000):
    # Initialize Vars
    word_to_index = []
    index_to_word = []
@@ -248,7 +248,7 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
          # Get the first 100 rolls and tokenize them
          num_rolls = 0
          with open(cur_file, 'r') as f:
-            tokenized += list(getLines(f, 50))
+            tokenized += list(getLines(f, max_rolls))
          # Delete the current file
          os.remove(cur_file)
 
@@ -288,7 +288,7 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
 # loadDataChars
 # Takes in a list of archive file names and loads in the training data as
 # lists of characters
-def loadData(filenames,vocab_size=2000, min_sent_chars=0):
+def loadDataChars(filenames,vocab_size=128, max_rolls=1000):
    # Initialize Vars
    word_to_index = []
    index_to_word = []
@@ -313,7 +313,7 @@ def loadData(filenames,vocab_size=2000, min_sent_chars=0):
          # Get the first 100 rolls and tokenize them
          num_rolls = 0
          with open(cur_file, 'r') as f:
-            tokenized += list(getLines(f, 50))
+            tokenized += list(getLinesChars(f, max_rolls))
          # Delete the current file
          os.remove(cur_file)
 

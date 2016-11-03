@@ -21,7 +21,6 @@ def sgdCallback(model, num_examples):
 # Script Data
 learning_rate = .001
 vocab_size = 5000
-embedding_dim = 48
 hidden_dim = 128
 nepoch = 20
 model_output_file = "GRU-%s" % datetime.now().strftime('%Y-%m-%d-%H-%M')
