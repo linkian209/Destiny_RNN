@@ -73,7 +73,7 @@ for item in tqdm(all_items, desc='Guns'):
       continue
 
    # Create the training data! 
-   utils.makeTrainingData(items, stats, perks, utils.makeGrid(grids[gun['grid']]), gun['hash'])
+   utils.makeTrainingDataJSON(items, stats, perks, utils.makeGrid(grids[gun['grid']]), gun['hash'])
 
    # Add this to the zipfile
    zf.write('%d.txt' % gun['hash'])

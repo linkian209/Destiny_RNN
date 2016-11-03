@@ -126,6 +126,65 @@ def makeTrainingData(items, stats, perks, grid, item_hash):
          roll += 'END_PERKS END_GUN\n'
          f.write(roll)
 
+# makeTrainingDataJSON
+# This function takes the dict created in getRolls and formats it for use
+# in training the RNN in JSON form
+def makeTrainingDataJSON(items, stats, perks, grid, item_hash):
+   filename = '%d.txt' % item_hash
+   with open(filename,'w') as f:
+      combos = []
+      item = items[item_hash]
+      # Creates the Cartesian Product off all the rolls
+      for i in grid:
+         combos.append([v for v in itertools.product(*grid[i].values())])
+      rolls = [v for v in itertools.product(*combos)]
+      # Start iterating through and output to file
+      # Section identifiers will be in all caps to help the network
+      # understand what is what
+      for cur_roll in tqdm(rolls, desc=unicode(item['itemName'],'utf-8')):
+         roll = '{\"name\":\"%s\",' % item['itemName']
+         roll += '\"description\": \"%s\",' % item['itemDescription']
+         roll += '\"tier\": \"%s\",' % item['tierTypeName']
+         roll += '\"type\": \"%s\",' % item['itemTypeName']
+         # Do the stats now
+         roll += '\"stats\":{'
+         statstrs = []
+         for stat_hash in item['stats']:
+            try:
+               stat = stats[int(stat_hash)]
+               statstr = '\"%s\":' % stat['statName'].lower()
+               statstr += '%d' % item['stats'][stat_hash]['value']
+               statstrs.append(statstr)
+            except:
+               continue
+         roll += ','.join(statstrs)
+         roll += '},'
+         # Now do perks
+         roll += '\"perks\":{'
+         col_id = 0
+         colstrs = []
+         for col in cur_roll:
+            # Start the Column
+            row_id = 0
+            colstr = '\"%d\":{' % col_id
+            rowstrs = []
+            # Do individual rows
+            for row in col:
+               rowstr = '\"%d\":[ ' % row_id
+               rowstr += ('\"%s\",'
+                          '\"%s\"') % tuple(row.replace('\n',' ').split('&split;'))
+               rowstr += ']'
+               rowstrs.append(rowstr)
+               row_id += 1
+            colstr += ','.join(rowstrs)
+            colstr += '}'
+            col_id += 1
+            colstrs.append(colstr)
+         # Done with perks. Finish roll then right it out!
+         roll += ','.join(colstrs)
+         roll += '}}\n'
+         f.write(roll)
+
 # init
 # This function is used for testing to auto initialize several components
 # necessary to create training data
@@ -152,8 +211,83 @@ def getLines(f, max_rolls):
          num_got += 1
          yield line.replace('\n','').split(' ')
 
+# getLinesChars
+# Generator to get lines from an inputted file as a list of chars
+def getLines(f, max_rolls):
+   num_got = 0
+   # Use probabilistic sampling to get around max_rolls lines
+   for line in f:
+      if np.random.rand() > (num_got / (max_rolls+0.0)):
+         num_got += 1
+         yield [x for x in line]
+
 # loadData
 # Takes in a list of archive file names and loads in the training data
+def loadData(filenames,vocab_size=2000, min_sent_chars=0):
+   # Initialize Vars
+   word_to_index = []
+   index_to_word = []
+   vocab = []
+   tokenized = []
+
+   # Read in data
+   print 'Beginning data load...'
+   for cur_archive in tqdm(filenames,desc="Archives"):
+      # Get the contents of the current archive
+      zf = zipfile.ZipFile(cur_archive, 'a', zipfile.ZIP_DEFLATED, allowZip64=True)
+      zf.extract('contents.txt')
+      with open('contents.txt','r') as f:
+         files = f.read().split('\n')
+
+      files = [x for x in files if x]
+
+      # Loop through files and read the data
+      for cur_file in tqdm(files, desc="Files"):
+         # Extract the current file
+         zf.extract(cur_file)
+         # Get the first 100 rolls and tokenize them
+         num_rolls = 0
+         with open(cur_file, 'r') as f:
+            tokenized += list(getLines(f, 50))
+         # Delete the current file
+         os.remove(cur_file)
+
+      # After looping through this archive's files, delete the contents.txt
+      # and start on the next one
+      os.remove('contents.txt')
+
+   print '\nData load complete!'
+
+   # After looping through the data, get the most used words and use them
+   # as our vocab
+   print 'Creating vocab...'
+   word_freq = nltk.FreqDist(itertools.chain(*tokenized))
+   vocab = sorted(word_freq.items(), key=lambda x: (x[1], x[0]))
+   vocab = sorted(vocab, key=operator.itemgetter(1))
+   print 'Vocab Created!'
+
+   print 'Creating Indices...'
+   index_to_word = ["<MASK/>", UNKNOWN_TOKEN] + [x[0] for x in tqdm(vocab, desc='Index to Word')]
+   word_to_index = dict([(w,i) for i,w in tqdm(enumerate(index_to_word), desc='Word to Index')])
+   print 'Indices Created!'
+
+   # Replace missing words with the unknown token
+   print 'Checking for unknown tokens....'
+   for i, sent in tqdm(enumerate(tokenized), desc='Tokenized'):
+      tokenized[i] = [w if w in word_to_index else UNKNOWN_TOKEN for w in sent]
+   print 'Complete!'
+
+   # Create Training Data Arrays
+   print 'Creating training arrays...'
+   x_train = np.asarray([[word_to_index[w] for w in tqdm(sent[:-1], desc='Words')] for sent in tqdm(tokenized,desc='x_train')])
+   y_train = np.asarray([[word_to_index[w] for w in tqdm(sent[1:], desc='Words')] for sent in tqdm(tokenized, desc='y_train')])
+   print '\nTraining arrays created!'
+
+   return x_train, y_train, word_to_index, index_to_word
+
+# loadDataChars
+# Takes in a list of archive file names and loads in the training data as
+# lists of characters
 def loadData(filenames,vocab_size=2000, min_sent_chars=0):
    # Initialize Vars
    word_to_index = []
@@ -325,19 +459,6 @@ def gradientCheckTheano(model, x, y, h=0.001, error_threshold=0.01):
 
     print "Gradient check for param %s passed!" % name
 
-# float_to_decimal
-# Converts floats to decimal
-def float_to_decimal(f):
-    n, d = f.as_integer_ratio()
-    numerator, denominator = Decimal(n), Decimal(d)
-    ctx = Context(prec=60)
-    result = ctx.divide(numerator, denominator)
-    while ctx.flags[Inexact]:
-        ctx.flags[Inexact] = False
-        ctx.prec *= 2
-        result = ctx.divide(numerator, denominator)
-    return result
-
 # generateGun
 # Takes in the trained model and the word indices and returns a gun
 def generateGun(model, index_to_word, word_to_index, min_length=20):
@@ -347,27 +468,24 @@ def generateGun(model, index_to_word, word_to_index, min_length=20):
   # to make sure we aren't getting caught in some loop
   while not new_gun[-1] == word_to_index[END_TOKEN]:
     next_word_prob = model.predict(new_gun)[-1]
-    print 'Before: '
-    print Decimal(sum(next_word_prob))
-	# Normalize prediction output
-    if Decimal(sum(next_word_prob)) > 1:
+    # Normalize prediction output
+    if sum(next_word_prob) > 1:
         next_word_prob = np.divide(next_word_prob, sum(next_word_prob))
-    print 'After: '
-    print Decimal(sum(next_word_prob))
-	# Loop to make sure we don't sample an unknown token
+    # Loop to make sure we don't sample an unknown token
     sampled_word = word_to_index[UNKNOWN_TOKEN]
-    while sampled_word == word_to_index[UNKNOWN_TOKEN]:	
+    while sampled_word == word_to_index[UNKNOWN_TOKEN]:
         samples = np.random.multinomial(1, next_word_prob)
         sampled_word = np.argmax(next_word_prob)
+    # Add this to the new gun
     new_gun.append(sampled_word)
     # Make sure we aren't stuck and don't have an unknown_token
     if len(new_gun) > 400:
       return None
-    #
+
   if len(new_gun) < min_length:
     return None
-  #
-  return [index_to_word[x] if x in index_to_word else UNKNOWN_TOKEN for x in new_gun]
+
+  return new_gun
 
 # generateGuns
 # Given a model, word indices, and a number of guns to make, this function
