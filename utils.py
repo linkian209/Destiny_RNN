@@ -143,7 +143,7 @@ def makeTrainingDataJSON(items, stats, perks, grid, item_hash):
       # understand what is what
       for cur_roll in tqdm(rolls, desc=unicode(item['itemName'],'utf-8')):
          roll = '{\"name\":\"%s\",' % item['itemName']
-         roll += '\"description\": \"%s\",' % item['itemDescription']
+         roll += '\"description\": \"%s\",' % item['itemDescription'].replace("\"", "\\\"")
          roll += '\"tier\": \"%s\",' % item['tierTypeName']
          roll += '\"type\": \"%s\",' % item['itemTypeName']
          # Do the stats now
