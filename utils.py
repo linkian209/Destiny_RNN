@@ -288,7 +288,7 @@ def loadData(filenames,vocab_size=2000, max_rolls=1000):
 # loadDataChars
 # Takes in a list of archive file names and loads in the training data as
 # lists of characters
-def loadDataChars(filenames,vocab_size=128, max_rolls=1000):
+def loadDataChars(filenames,vocab_size=128, max_rolls=1000, max_len=2000):
    # Initialize Vars
    word_to_index = []
    index_to_word = []
@@ -322,6 +322,12 @@ def loadDataChars(filenames,vocab_size=128, max_rolls=1000):
       os.remove('contents.txt')
 
    print '\nData load complete!'
+   print 'Padding examples...'
+   for sent in tqdm(tokenized, desc="Examples"):
+       if len(sent) < max_len:
+	     while len(sent) < max_len:
+		     sent.append(' ')
+   print 'Padding complete!'
 
    # After looping through the data, get the most used words and use them
    # as our vocab
@@ -478,8 +484,8 @@ def generateGun(model, index_to_word, word_to_index, min_length=20):
         sampled_word = np.argmax(next_word_prob)
     # Add this to the new gun
     new_gun.append(sampled_word)
-    # Make sure we aren't stuck and don't have an unknown_token
-    if len(new_gun) > 400:
+    # Make sure we aren't stuck
+    if len(new_gun) > 2000:
       return None
 
   if len(new_gun) < min_length:

@@ -20,7 +20,7 @@ def sgdCallback(model, num_examples):
 
 # Script Data
 learning_rate = .001
-vocab_size = 5000
+vocab_size = 256
 hidden_dim = 128
 nepoch = 20
 model_output_file = "GRU-%s" % datetime.now().strftime('%Y-%m-%d-%H-%M')
@@ -30,7 +30,7 @@ log_file = open('log.txt','w')
 
 # Load in data
 print 'Constructing training data...'
-x_train, y_train, word_to_index, index_to_word = loadData(input_data_file, vocab_size)
+x_train, y_train, word_to_index, index_to_word = loadDataChars(input_data_file, vocab_size)
 print 'Training Data Assembly Complete!\n'
 
 # Build Model

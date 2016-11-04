@@ -45,7 +45,7 @@ class GRUTheano:
 
     # Theano Vectors
     x = T.ivector('x')
-    y = T.ivector('y')
+    y = T.ivector('y')	
 
     def forwardPropStep(x_t, s_t1_prev, s_t2_prev):
       # Word embedding layer
@@ -110,23 +110,29 @@ class GRUTheano:
     mb = decay * self.mb + (1 - decay) * db ** 2
     mc = decay * self.mc + (1 - decay) * dc ** 2
 
-    # SGD Step function
-    # This function is the function that trains the model
-    self.sgdStep = theano.function(
-      [x, y, learning_rate, theano.In(decay, value=0.9)],
-      [],
-      updates=[(E, E - learning_rate * dE / T.sqrt(mE + 1e-6)),
-               (U, U - learning_rate * dU / T.sqrt(mU + 1e-6)),
-               (W, W - learning_rate * dW / T.sqrt(mW + 1e-6)),
-               (V, V - learning_rate * dV / T.sqrt(mV + 1e-6)),
-               (b, b - learning_rate * db / T.sqrt(mb + 1e-6)),
-               (c, c - learning_rate * dc / T.sqrt(mc + 1e-6)),
-               (self.mE, mE),
-               (self.mU, mU),
-               (self.mW, mW),
-               (self.mV, mV),
-               (self.mb, mb),
-               (self.mc, mc)])
+
+
+    # Step function
+    batch_start = T.lscalar('batch_start')
+    batch_stop = T.lscalar('batch_stop')
+    self.step = theano.function(
+		  [x,y,batch_start, batch_stop, learning_rate, theano.In(decay, value=0.9)],
+		  [],
+		  givens={x: x[:, batch_start:batch_stop],
+                  y: y[:, batch_start:batch_stop]},
+		  updates=[(E, E - learning_rate * dE / T.sqrt(mE + 1e-6)),
+		           (U, U - learning_rate * dU / T.sqrt(mU + 1e-6)),
+		           (W, W - learning_rate * dW / T.sqrt(mW + 1e-6)),
+		           (V, V - learning_rate * dV / T.sqrt(mV + 1e-6)),
+		           (b, b - learning_rate * db / T.sqrt(mb + 1e-6)),
+		           (c, c - learning_rate * dc / T.sqrt(mc + 1e-6)),
+		           (self.mE, mE),
+		           (self.mU, mU),
+		           (self.mW, mW),
+		           (self.mV, mV),
+		           (self.mb, mb),
+		           (self.mc, mc)])
+
 
   # Calculate Loss Functions
   def calculateTotalLoss(self, X, Y):
@@ -136,4 +142,17 @@ class GRUTheano:
     # Get average loss per word
     num_words = np.sum([len(y) for y in Y])
     return self.calculateTotalLoss(X,Y) / float(num_words)
+
+  # SGD Step function
+  # This function is the function that trains the model
+  def sgdStep(x_train, y_train, learning_rate, decay=.9, batch_size=32):
+	# Initialize
+	num_examples = x_train.shape[1]
+	num_batches = T.ceil(1.* num_examples / batch_size)
+
+	# Loop through batches
+	for i in range(num_batches):
+		batch_start = i * batch_size
+		batch_end = T.minimum(num_examples, (i+1) * batch_size)
+		step(batch_start, batch_end, learning_rate, decay)
 
