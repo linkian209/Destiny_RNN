@@ -279,8 +279,8 @@ def loadData(filenames,vocab_size=2000, max_rolls=1000):
 
    # Create Training Data Arrays
    print 'Creating training arrays...'
-   x_train = np.asarray([[word_to_index[w] for w in tqdm(sent[:-1], desc='Words')] for sent in tqdm(tokenized,desc='x_train')])
-   y_train = np.asarray([[word_to_index[w] for w in tqdm(sent[1:], desc='Words')] for sent in tqdm(tokenized, desc='y_train')])
+   x_train = np.asarray([[word_to_index[w] for w in tqdm(sent[:-1], desc='Words')] for sent in tqdm(tokenized,desc='x_train')],dtype='int32')
+   y_train = np.asarray([[word_to_index[w] for w in tqdm(sent[1:], desc='Words')] for sent in tqdm(tokenized, desc='y_train')],dtype='int32')
    print '\nTraining arrays created!'
 
    return x_train, y_train, word_to_index, index_to_word
@@ -325,8 +325,8 @@ def loadDataChars(filenames,vocab_size=128, max_rolls=1000, max_len=2000):
    print 'Padding examples...'
    for sent in tqdm(tokenized, desc="Examples"):
        if len(sent) < max_len:
-	     while len(sent) < max_len:
-		     sent.append(' ')
+           while len(sent) <= max_len:
+               sent.append(' ')
    print 'Padding complete!'
 
    # After looping through the data, get the most used words and use them
@@ -350,8 +350,8 @@ def loadDataChars(filenames,vocab_size=128, max_rolls=1000, max_len=2000):
 
    # Create Training Data Arrays
    print 'Creating training arrays...'
-   x_train = np.asarray([[word_to_index[w] for w in tqdm(sent[:-1], desc='Words')] for sent in tqdm(tokenized,desc='x_train')])
-   y_train = np.asarray([[word_to_index[w] for w in tqdm(sent[1:], desc='Words')] for sent in tqdm(tokenized, desc='y_train')])
+   x_train = np.asarray([[word_to_index[w] for w in tqdm(sent[:-1], desc='Words')] for sent in tqdm(tokenized,desc='x_train')],dtype='int32')
+   y_train = np.asarray([[word_to_index[w] for w in tqdm(sent[1:], desc='Words')] for sent in tqdm(tokenized, desc='y_train')],dtype='int32')
    print '\nTraining arrays created!'
 
    return x_train, y_train, word_to_index, index_to_word
@@ -360,18 +360,26 @@ def loadDataChars(filenames,vocab_size=128, max_rolls=1000, max_len=2000):
 # Take the inputted model and training data and run a number of epochs
 # over the data to train the model
 def trainWithSGD(model, x_train, y_train, learning_rate=.001, nepoch=20,
-  decay=0.9, callback_every=10000, callback=None):
+  decay=0.9, callback_every=10000, callback=None, batch_size=32):
   # Keep track of number examples seen for the callback
   examples_seen = 0
-
+  total_examples = len(x_train)
+  num_batches = np.ceil(1. * total_examples / num_batches)
+  callback_freq = np.ceil(callback_every / batch_size)
   # Loop through epochs
   for epoch in tqdm(range(nepoch), desc='Epochs'):
-    for i in tqdm(np.random.permutation(len(y_train)), desc='Example'):
+    for i in tqdm(range(num_batches), desc='Batches'):
+      # Batch Params
+      batch_start = i * batch_size
+      batch_end = min(total_examples, (i+1) * batch_size)
       # Do one step with Stochastic Gradient Descent
-      model.sgdStep(x_train[i], y_train[i], learning_rate, decay)
-      examples_seen += 1
+      model.sgdStep(x_train[batch_start:batch_end],
+                    y_train[batch_start:batch_end], learning_rate, decay)
+      examples_seen += (batch_end - batch_start)
       # Do the callback if we have a callback and have seen enough
-      if(callback and callback_every and examples_seen % callback_every == 0):
+      if(callback and callback_every and
+        (examples_seen % callback_freq == 0 or (i+1) > num_batches)):
+        # Do callback
         callback(model, examples_seen)
 
   # Return the model once we complete training
