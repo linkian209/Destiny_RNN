@@ -8,14 +8,13 @@ from theano.gradient import grad_clip
 class GRUTheano:
 
   # Initialization function
-  def __init__(self, word_dim, hidden_dim=128, bptt_truncate=-1,
-               batch_size=32, debug=False):
+  def __init__(self, word_dim, hidden_dim=128, bptt_truncate=-1, 
+               batch_size = 32):
 
     self.word_dim = word_dim
     self.hidden_dim = hidden_dim
     self.bptt_truncate = bptt_truncate
-    self.batch_size = batch_size
-    self.debug = debug
+    self.batch_size = 32
 
     # Initialize network parameters
     E = np.random.uniform(-np.sqrt(1./word_dim), np.sqrt(1./word_dim), (hidden_dim, word_dim))
@@ -46,43 +45,57 @@ class GRUTheano:
   def __theano_build__(self):
     E, U, W, V, b, c = self.E, self.U, self.W, self.V, self.b, self.c
 
-    # Theano Matrix
+    # Theano Vectors
     x = T.imatrix('x')
-    if self.debug:
-      theano.config.compute_test_value = 'warn'
-      x.tag.test_value = np.random.randint(0, high=self.word_dim, size=(32,2000),dtype='int32')
+    theano.config.compute_test_value = 'warn'
+    x.tag.test_value = np.random.randint(0, high=self.word_dim, size=(32,2000), dtype='int32')
     y = T.imatrix('y')
+    t1 = T.zeros((self.batch_size, self.hidden_dim), dtype=theano.config.floatX)
+    t2 = T.zeros((self.batch_size, self.hidden_dim), dtype=theano.config.floatX)
 
     def forwardPropStep(x_t, s_t1_prev, s_t2_prev):
       # Word embedding layer
       x_e = E[:,x_t]
-      s_t1_p = T.reshape(s_t1_prev,(s_t1_prev.shape[1],s_t1_prev.shape[0]))
+
+
+      if s_t1_prev.shape[0] != self.hidden_dim:
+         s_t1_prev = T.reshape(s_t1_prev, (s_t1_prev.shape[1],s_t1_prev.shape[0]))
+      if s_t2_prev.shape[0] != self.hidden_dim:
+         s_t2_prev = T.reshape(s_t2_prev, (s_t2_prev.shape[1],s_t2_prev.shape[0]))
+
+      b = T.reshape(b, (b.shape[1], b.shape[0]))
 
       # GRU Layer 1
-      z_t1 = T.nnet.hard_sigmoid(U[0].dot(x_e) + W[0].dot(s_t1_p) + b[0])
-      r_t1 = T.nnet.hard_sigmoid(U[1].dot(x_e) + W[1].dot(s_t1_prev) + b[1])
+      z_t1 = T.nnet.hard_sigmoid(U[0].dot(x_e) + W[0].dot(s_t1_prev) + b[:,0])
+      r_t1 = T.nnet.hard_sigmoid(U[1].dot(x_e) + W[1].dot(s_t1_prev) + b[:,1])
       c_t1 = T.tanh(U[2].dot(x_e) + W[2].dot(s_t1_prev * r_t1) + b[2])
       s_t1 = (T.ones_like(z_t1) - z_t1) * c_t1 + z_t1 * s_t1_prev
 
       # GRU Layer 2
-      z_t2 = T.nnet.hard_sigmoid(U[3].dot(s_t1) + W[3].dot(s_t2_prev) + b[3])
-      r_t2 = T.nnet.hard_sigmoid(U[4].dot(s_t1) + W[4].dot(s_t2_prev) + b[4])
-      c_t2 = T.tanh(U[5].dot(x_e) + W[5].dot(s_t2_prev * r_t2) + b[5])
+      z_t2 = T.nnet.hard_sigmoid(U[3].dot(s_t1) + W[3].dot(s_t2_prev) + b[:,3])
+      r_t2 = T.nnet.hard_sigmoid(U[4].dot(s_t1) + W[4].dot(s_t2_prev) + b[:,4])
+      c_t2 = T.tanh(U[5].dot(s_t1) + W[5].dot(s_t2_prev * r_t2) + b[:,5])
       s_t2 = (T.ones_like(z_t2) - z_t2) * c_t2 + z_t2 * s_t2_prev
 
       # Final calculation
       o_t = T.nnet.softmax(V.dot(s_t2) + c)[0]
+
+      if s_t1_prev.shape[0] == self.hidden_dim:
+         s_t1_prev = T.reshape(s_t1_prev, (s_t1_prev.shape[1],s_t1_prev.shape[0]))
+      if s_t2_prev.shape[0] == self.hidden_dim:
+         s_t2_prev = T.reshape(s_t2_prev, (s_t2_prev.shape[1],s_t2_prev.shape[0]))
+      b = T.reshape(b, (b.shape[1], b.shape[0]))
 
       return [o_t, s_t1, s_t2]
 
     # Theano Looping, using scan
     [o, s, s2], updates = theano.scan(
       forwardPropStep,
-      sequences=[x.T],
+      sequences=x.T,
       truncate_gradient=self.bptt_truncate,
       outputs_info=[None,
-                    dict(initial=T.zeros((32,128))),
-                    dict(initial=T.zeros((32,128)))])
+                    dict(initial=t1),
+                    dict(initial=t2)])
 
     # Prediction and error params
     prediction = T.argmax(o, axis=1)
@@ -117,26 +130,23 @@ class GRUTheano:
     mb = decay * self.mb + (1 - decay) * db ** 2
     mc = decay * self.mc + (1 - decay) * dc ** 2
 
-
-
-    # SGDStep function
-    # This function actually trains the model
+    # SGD Step function
+    # This function is the function that trains the model
     self.sgdStep = theano.function(
-        [x, y, learning_rate, theano.In(decay, value=0.9)],
-        [],
-        updates=[(E, E - learning_rate * dE / T.sqrt(mE + 1e-6)),
-                 (U, U - learning_rate * dU / T.sqrt(mU + 1e-6)),
-                 (W, W - learning_rate * dW / T.sqrt(mW + 1e-6)),
-                 (V, V - learning_rate * dV / T.sqrt(mV + 1e-6)),
-                 (b, b - learning_rate * db / T.sqrt(mb + 1e-6)),
-                 (c, c - learning_rate * dc / T.sqrt(mc + 1e-6)),
-                 (self.mE, mE),
-                 (self.mU, mU),
-                 (self.mW, mW),
-                 (self.mV, mV),
-                 (self.mb, mb),
-                 (self.mc, mc)])
-
+      [x, y, learning_rate, theano.In(decay, value=0.9)],
+      [],
+      updates=[(E, E - learning_rate * dE / T.sqrt(mE + 1e-6)),
+               (U, U - learning_rate * dU / T.sqrt(mU + 1e-6)),
+               (W, W - learning_rate * dW / T.sqrt(mW + 1e-6)),
+               (V, V - learning_rate * dV / T.sqrt(mV + 1e-6)),
+               (b, b - learning_rate * db / T.sqrt(mb + 1e-6)),
+               (c, c - learning_rate * dc / T.sqrt(mc + 1e-6)),
+               (self.mE, mE),
+               (self.mU, mU),
+               (self.mW, mW),
+               (self.mV, mV),
+               (self.mb, mb),
+               (self.mc, mc)])
 
   # Calculate Loss Functions
   def calculateTotalLoss(self, X, Y):
@@ -146,3 +156,4 @@ class GRUTheano:
     # Get average loss per word
     num_words = np.sum([len(y) for y in Y])
     return self.calculateTotalLoss(X,Y) / float(num_words)
+
