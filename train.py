@@ -42,7 +42,7 @@ print 'Model created and initial state saved!'
 # Do one SGD step and print time for a step
 print 'Performing one SGD step...'
 t1 = time.time()
-model.sgdStep(x_train[10], y_train[10], learning_rate)
+model.sgdStep(x_train[10:42], y_train[10:42], learning_rate)
 t2 = time.time()
 print 'Complete!\nSGD Step Time: %f milliseconds' % ((t2 -t1) * 1000.0)
 

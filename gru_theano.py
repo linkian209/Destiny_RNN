@@ -47,44 +47,42 @@ class GRUTheano:
 
     # Theano Vectors
     x = T.imatrix('x')
-    theano.config.compute_test_value = 'warn'
-    x.tag.test_value = np.random.randint(0, high=self.word_dim, size=(32,2000), dtype='int32')
     y = T.imatrix('y')
     t1 = T.zeros((self.batch_size, self.hidden_dim), dtype=theano.config.floatX)
     t2 = T.zeros((self.batch_size, self.hidden_dim), dtype=theano.config.floatX)
 
     def forwardPropStep(x_t, s_t1_prev, s_t2_prev):
-      # Word embedding layer
-      x_e = E[:,x_t]
 
-
+      # Reshape variables
       if s_t1_prev.shape[0] != self.hidden_dim:
          s_t1_prev = T.reshape(s_t1_prev, (s_t1_prev.shape[1],s_t1_prev.shape[0]))
       if s_t2_prev.shape[0] != self.hidden_dim:
          s_t2_prev = T.reshape(s_t2_prev, (s_t2_prev.shape[1],s_t2_prev.shape[0]))
 
-      b = T.reshape(b, (b.shape[1], b.shape[0]))
+      b1 = self.b.reshape((self.b.shape[1], self.b.shape[0]))
+
+      # Word embedding layer
+      x_e = E[:,x_t]
 
       # GRU Layer 1
-      z_t1 = T.nnet.hard_sigmoid(U[0].dot(x_e) + W[0].dot(s_t1_prev) + b[:,0])
-      r_t1 = T.nnet.hard_sigmoid(U[1].dot(x_e) + W[1].dot(s_t1_prev) + b[:,1])
-      c_t1 = T.tanh(U[2].dot(x_e) + W[2].dot(s_t1_prev * r_t1) + b[2])
+      z_t1 = T.nnet.hard_sigmoid(U[0].dot(x_e) + W[0].dot(s_t1_prev) + b1[:,0].dimshuffle(0,'x'))
+      r_t1 = T.nnet.hard_sigmoid(U[1].dot(x_e) + W[1].dot(s_t1_prev) + b1[:,1].dimshuffle(0,'x'))
+      c_t1 = T.tanh(U[2].dot(x_e) + W[2].dot(s_t1_prev * r_t1) + b1[:,2].dimshuffle(0,'x'))
       s_t1 = (T.ones_like(z_t1) - z_t1) * c_t1 + z_t1 * s_t1_prev
 
       # GRU Layer 2
-      z_t2 = T.nnet.hard_sigmoid(U[3].dot(s_t1) + W[3].dot(s_t2_prev) + b[:,3])
-      r_t2 = T.nnet.hard_sigmoid(U[4].dot(s_t1) + W[4].dot(s_t2_prev) + b[:,4])
-      c_t2 = T.tanh(U[5].dot(s_t1) + W[5].dot(s_t2_prev * r_t2) + b[:,5])
+      z_t2 = T.nnet.hard_sigmoid(U[3].dot(s_t1) + W[3].dot(s_t2_prev) + b1[:,3].dimshuffle(0,'x'))
+      r_t2 = T.nnet.hard_sigmoid(U[4].dot(s_t1) + W[4].dot(s_t2_prev) + b1[:,4].dimshuffle(0,'x'))
+      c_t2 = T.tanh(U[5].dot(s_t1) + W[5].dot(s_t2_prev * r_t2) + b1[:,5].dimshuffle(0,'x'))
       s_t2 = (T.ones_like(z_t2) - z_t2) * c_t2 + z_t2 * s_t2_prev
 
       # Final calculation
-      o_t = T.nnet.softmax(V.dot(s_t2) + c)[0]
+      o_t = T.nnet.softmax(V.dot(s_t2) + c.dimshuffle(0,'x'))[0]
 
-      if s_t1_prev.shape[0] == self.hidden_dim:
-         s_t1_prev = T.reshape(s_t1_prev, (s_t1_prev.shape[1],s_t1_prev.shape[0]))
-      if s_t2_prev.shape[0] == self.hidden_dim:
-         s_t2_prev = T.reshape(s_t2_prev, (s_t2_prev.shape[1],s_t2_prev.shape[0]))
-      b = T.reshape(b, (b.shape[1], b.shape[0]))
+      if s_t1.shape[0] != self.hidden_dim:
+         s_t1 = T.reshape(s_t1, (s_t1.shape[1],s_t1.shape[0]))
+      if s_t2.shape[0] != self.hidden_dim:
+         s_t2 = T.reshape(s_t2, (s_t2.shape[1],s_t2.shape[0]))
 
       return [o_t, s_t1, s_t2]
 
@@ -99,7 +97,7 @@ class GRUTheano:
 
     # Prediction and error params
     prediction = T.argmax(o, axis=1)
-    o_error = T.sum(T.nnet.categorical_crossentropy(o,y))
+    o_error = T.sum(T.nnet.categorical_crossentropy(o.T,y))
 
     # Total Cost (can add regularization here)
     cost = o_error
@@ -150,10 +148,22 @@ class GRUTheano:
 
   # Calculate Loss Functions
   def calculateTotalLoss(self, X, Y):
-    return np.sum([self.ceError(x,y) for x,y in zip(X,Y)])
+    total_examples = len(X)
+    batch_start = i * self.batch_size
+    batch_end = min(total_examples, (i+1) * self.batch_size)
+    num_batches = np.ceil(1. * total_examples / self.batch_size)
+    for i in range(num_batches):
+        if (batch_end == total_examples) and (batch_end - batch_start < batch_size):
+            remaining = batch_end - batch_start
+            err_x = X[batch_start:batch_end] + X[0:remaining]
+            err_y = Y[batch_start:batch_end] + Y[0:remaining]
+            # Do the last step
+            yield self.ceError
+        else:
+            yield self.ceError(X[batch_start:batch_end],Y[batch_start:batch_end])
 
   def calculateLoss(self, X, Y):
     # Get average loss per word
     num_words = np.sum([len(y) for y in Y])
-    return self.calculateTotalLoss(X,Y) / float(num_words)
+    return sum(list(self.calculateTotalLoss(X,Y))) / float(num_words)
 
