@@ -8,25 +8,21 @@ from gru_tensor import GRUTensor
 # SGD Callback function
 def sgdCallback(model, num_examples, loss):
   dt = datetime.now().isoformat()
-  with open(log_file, 'a'):
+  print 'Doing Callback...'
+  with open(log_filename, 'a')as log_file:
       log_file.write('%s (%d)\n' % (dt, num_examples))
       log_file.write('-----------------------------------------------------\n')
       log_file.write('Average Loss over %d training data: %f' % (num_examples,loss))
-      log_file.write('\nSaving model..\n')
-      model['saver'].save(sess, model_output_file)
-      log_file.write('Save Complete!\n')
-      examples = generateGuns(model, 3, index_to_word, word_to_index)
-      log_file.write('\n'.join(examples))
 
 # Script Data
 learning_rate = .001
 vocab_size = 256
 hidden_dim = 128
 nepoch = 20
-model_output_file = "GRU-%s" % datetime.now().strftime('%Y-%m-%d-%H-%M')
+model_output_file = "Tensor-%s" % datetime.now().strftime('%Y-%m-%d-%H-%M')
 input_data_file = ['archive_0.zip']
 print_every = 25000
-log_file = 'log.txt'
+log_filename = 'log.txt'
 
 # Load in data
 print 'Constructing training data...'
@@ -52,7 +48,8 @@ print 'Complete!\nStep Time + variable creation: %f milliseconds' % ((t2 -t1) * 
 
 # Begin training
 print 'Beginning Training over %d epochs...' % nepoch
-losses = train(model, x_train, y_train, learning_rate=learning_rate,
+losses = train(model, x_train, y_train, word_to_index,
+               index_to_word, model_output_file, learning_rate=learning_rate,
                nepoch=20, callback_every=print_every,
                callback=sgdCallback)
 

@@ -15,7 +15,7 @@ def GRUTensor(hidden_dim=128, vocab_size=256, batch_size=32, num_layers=3,
     dropout = tf.constant(1.0)
     embeddings = tf.get_variable('embedding_matrix',
                  [vocab_size, hidden_dim])
-                 #initializer=tf.random_uniform([vocab_size, hidden_dim], -1.0, 1.0))
+
     rnn_inputs = tf.nn.embedding_lookup(embeddings, x)
 
     # Assemble the Network

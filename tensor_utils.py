@@ -14,6 +14,7 @@ from tqdm import tqdm
 from pprint import pprint
 from datetime import datetime
 from decimal import Decimal
+from gru_tensor import GRUTensor
 
 # Globals
 UNKNOWN_TOKEN = 'UNKNOWN_TOKEN'
@@ -362,7 +363,8 @@ def loadDataChars(filenames,vocab_size=128, max_rolls=1000, max_len=2000):
 # train
 # Take the inputted model and training data and run a number of epochs
 # over the data to train the model
-def train(model, x_train, y_train, learning_rate=.0001,
+def train(model, x_train, y_train, word_to_index,
+                 index_to_word, model_output_file, learning_rate=.0001,
                  nepoch=20, callback_every=10000,
                  callback=None, batch_size=32):
   with tf.Session() as sess:
@@ -404,9 +406,14 @@ def train(model, x_train, y_train, learning_rate=.0001,
         examples_seen += batch_size
         # Do the callback if we have a callback and have seen enough
         if(callback and callback_every and
-          (examples_seen % callback_freq == 0 or (i+1) > num_batches)):
+          (examples_seen % callback_freq == 0 or (i+1) == num_batches)):
           # Do callback
           callback(model, examples_seen, training_loss/(1.*i))
+          # Save Model and generating an example gun
+          model['saver'].save(sess, model_output_file)
+          temp = GRUTensor(num_steps=1, batch_size=1)
+          examples = generateGuns(temp, 1, model_output_file, index_to_word, word_to_index)
+          model['saver'].restore(sess, model_output_file)
 
       # Record this epoch's loss
       training_losses.append(training_loss/(1.0 *num_batches))	
@@ -421,7 +428,7 @@ def generateGun(model, start, num_chars=2000, vocab_size=256):
   with tf.Session() as sess:
     # Start with the begin token
     state = None
-    new_gun = [word_to_index[BEGIN_TOKEN]]
+    new_gun = [start]
     # Generate characters
     for i in tqdm(range(num_chars), desc='Characters'):
       # Initialize			
@@ -439,24 +446,40 @@ def generateGun(model, start, num_chars=2000, vocab_size=256):
 # generateGuns
 # Given a model, word indices, and a number of guns to make, this function
 # generates guns from the model
-def generateGuns(model, n, index_to_word, word_to_index, 
+def generateGuns(model, n, model_output_file, index_to_word, word_to_index, 
                  vocab_size=256, filename=None):
-  # retval is a list of guns
-  retval = []
-  # If we did not get a filename, make a default one
-  if not filename:
-    time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = 'guns_%s.txt' % time
+  # Initialize
+  with tf.Session() as sess:
+    sess.run(tf.initialize_all_variables())
+    model['saver'].restore(sess, model_output_file)
+    print 'Loaded. Beginning Generation'
 
-  with open(filename, 'w') as f:
-    for i in tqdm(range(n), desc="Guns"):
-      sent = None
-      while not sent:
-        sent = generateGun(model, word_to_index[BEGIN_TOKEN], vocab_size)
+    # retval is a list of guns
+    retval = []
+    # If we did not get a filename, make a default one
+    if not filename:
+      time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+      filename = 'guns_%s.txt' % time
 
-      pprint(sent)
-      f.write(''.join([index_to_word[x] for x in sent]))
-      f.write('\n')
-      retval.append(''.join([index_to_word[x] for x in sent]))
+    with open(filename, 'w') as f:
+      for i in tqdm(range(n), desc="Guns"):
+         state = None
+         new_gun = [word_to_index[BEGIN_TOKEN]]
+         # Generate characters
+         for i in range(num_chars):
+            # Initialize			
+            if state is not None:
+              feed_dict = {model['x']: [[new_gun]], model['init_state']: state}
+            else:
+              feed_dict = {model['x']: [[new_gun]]}
+
+            pred, state = sess.run([model['preds'], model['final_state']], feed_dict)
+            sampled = np.random.choice(vocab_size, 1, p=np.sqeeze(pred))[0]
+            new_gun.append(sampled_word)
+            print new_gun
+
+         f.write(''.join([index_to_word[x] for x in new_gun]))
+         f.write('\n')
+         retval.append(''.join([index_to_word[x] for x in new_gun]))
 
   return retval
