@@ -8,14 +8,15 @@ from gru_tensor import GRUTensor
 # SGD Callback function
 def sgdCallback(model, num_examples, loss):
   dt = datetime.now().isoformat()
-  log_file.write('%s (%d)\n' % (dt, num_examples))
-  log_file.write('-----------------------------------------------------\n')
-  log_file.write('Average Loss over %d training data: %f' % (num_examples,loss))
-  log_file.write('\nSaving model..\n')
-  model['saver'].save(sess, model_output_file)
-  log_file.write('Save Complete!\n')
-  examples = generateGuns(model, 3, index_to_word, word_to_index)
-  log_file.write('\n'.join(examples))
+  with open(log_file, 'a'):
+      log_file.write('%s (%d)\n' % (dt, num_examples))
+      log_file.write('-----------------------------------------------------\n')
+      log_file.write('Average Loss over %d training data: %f' % (num_examples,loss))
+      log_file.write('\nSaving model..\n')
+      model['saver'].save(sess, model_output_file)
+      log_file.write('Save Complete!\n')
+      examples = generateGuns(model, 3, index_to_word, word_to_index)
+      log_file.write('\n'.join(examples))
 
 # Script Data
 learning_rate = .001
@@ -25,7 +26,7 @@ nepoch = 20
 model_output_file = "GRU-%s" % datetime.now().strftime('%Y-%m-%d-%H-%M')
 input_data_file = ['archive_0.zip']
 print_every = 25000
-log_file = open('log.txt','w')
+log_file = 'log.txt'
 
 # Load in data
 print 'Constructing training data...'
