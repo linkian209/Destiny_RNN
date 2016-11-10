@@ -364,7 +364,7 @@ def trainWithSGD(model, x_train, y_train, learning_rate=.001, nepoch=20,
   # Keep track of number examples seen for the callback
   examples_seen = 0
   total_examples = len(x_train)
-  num_batches = np.ceil(1. * total_examples / num_batches)
+  num_batches = np.ceil(1. * total_examples / batch_size)
   callback_freq = np.ceil(callback_every / batch_size)
   # Loop through epochs
   for epoch in tqdm(range(nepoch), desc='Epochs'):
@@ -372,9 +372,18 @@ def trainWithSGD(model, x_train, y_train, learning_rate=.001, nepoch=20,
       # Batch Params
       batch_start = i * batch_size
       batch_end = min(total_examples, (i+1) * batch_size)
-      # Do one step with Stochastic Gradient Descent
-      model.sgdStep(x_train[batch_start:batch_end],
-                    y_train[batch_start:batch_end], learning_rate, decay)
+      # If we don't have enough in the epoch to do a whole batch,
+      # repeat some from the beginning
+      if (batch_end == total_examples) and (batch_end - batch_start < batch_size):
+          remaining = batch_end - batch_start
+          train_x = x_train[batch_start:batch_end] + x_train[0:remaining]
+          train_y = y_train[batch_start:batch_end] + y_train[0:remaining]
+          # Do the last step
+          model.sgdStep(train_x, train_y, learning_rate, decay)
+      else:
+		  # Do one step with Stochastic Gradient Descent
+		  model.sgdStep(x_train[batch_start:batch_end],
+		                y_train[batch_start:batch_end], learning_rate, decay)
       examples_seen += (batch_end - batch_start)
       # Do the callback if we have a callback and have seen enough
       if(callback and callback_every and
@@ -475,9 +484,10 @@ def gradientCheckTheano(model, x, y, h=0.001, error_threshold=0.01):
 
 # generateGun
 # Takes in the trained model and the word indices and returns a gun
-def generateGun(model, index_to_word, word_to_index, min_length=20):
+def generateGun(model, index_to_word, word_to_index, min_length=20,
+                batch_size=32):
   # Start with the begin token
-  new_gun = [word_to_index[BEGIN_TOKEN]]
+  new_gun = [word_to_index[BEGIN_TOKEN]] * batch_size
   # Repeat until we get an end token or the gun is too long (>300 words)
   # to make sure we aren't getting caught in some loop
   while not new_gun[-1] == word_to_index[END_TOKEN]:
@@ -499,12 +509,13 @@ def generateGun(model, index_to_word, word_to_index, min_length=20):
   if len(new_gun) < min_length:
     return None
 
-  return new_gun
+  return [index_to_word(w) for w in new_gun]
 
 # generateGuns
 # Given a model, word indices, and a number of guns to make, this function
 # generates guns from the model
-def generateGuns(model, n, index_to_word, word_to_index, filename=None):
+def generateGuns(model, n, index_to_word, word_to_index, filename=None,
+                 batch_size=32):
   # retval is a list of guns
   retval = []
   # If we did not get a filename, make a default one
@@ -516,7 +527,7 @@ def generateGuns(model, n, index_to_word, word_to_index, filename=None):
     for i in tqdm(range(n), desc="Guns"):
       sent = None
       while not sent:
-        sent = generateGun(model, index_to_word, word_to_index)
+        sent = generateGun(model, index_to_word, word_to_index, batch_size)
 
       pprint(sent)
       f.write(" ".join(sent))
