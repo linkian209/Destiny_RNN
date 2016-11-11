@@ -367,6 +367,7 @@ def train(model, x_train, y_train, word_to_index,
                  index_to_word, model_output_file, learning_rate=.0001,
                  nepoch=20, callback_every=10000,
                  callback=None, batch_size=32):
+  training_losses = []
   with tf.Session() as sess:
     # Initialize
     sess.run(tf.initialize_all_variables())
@@ -374,7 +375,6 @@ def train(model, x_train, y_train, word_to_index,
     total_examples = len(x_train)
     num_batches = np.ceil(1. * total_examples / batch_size)
     callback_freq = np.ceil(callback_every / batch_size)
-    training_losses = []
     # Loop through epochs
     for epoch in tqdm(range(nepoch), desc='Epochs'):
       # Epoch variables
@@ -408,15 +408,22 @@ def train(model, x_train, y_train, word_to_index,
         if(callback and callback_every and
           (examples_seen % callback_freq == 0 or (i+1) == num_batches)):
           # Do callback
-          callback(model, examples_seen, training_loss/(1.*i))
           # Save Model and generating an example gun
+          print 'Callback'
           model['saver'].save(sess, model_output_file)
           temp = GRUTensor(num_steps=1, batch_size=1)
           examples = generateGuns(temp, 1, model_output_file, index_to_word, word_to_index)
-          model['saver'].restore(sess, model_output_file)
+          #model['saver'].restore(sess, model_output_file)
+          with open(log_filename, 'a') as log_file:
+            log_file.write('%s (%d)\n' % (dt, examples_seen))
+            log_file.write('-----------------------------------------------------\n')
+            log_file.write('Average Loss over %d training data: %f\n' % (examples_seen,loss))
+            log_file.write('Examples:\n')
+            log_file.write('\n'.join(examples))
 
       # Record this epoch's loss
-      training_losses.append(training_loss/(1.0 *num_batches))	
+      #epoch_loss = training_loss / (1.* num_batches)
+      #training_losses.append(epoch_loss)	
 
   # Return the model once we complete training
   return training_losses
@@ -446,40 +453,42 @@ def generateGun(model, start, num_chars=2000, vocab_size=256):
 # generateGuns
 # Given a model, word indices, and a number of guns to make, this function
 # generates guns from the model
-def generateGuns(model, n, model_output_file, index_to_word, word_to_index, 
-                 vocab_size=256, filename=None):
-  # Initialize
-  with tf.Session() as sess:
-    sess.run(tf.initialize_all_variables())
-    model['saver'].restore(sess, model_output_file)
-    print 'Loaded. Beginning Generation'
-
+def generateGuns(model, n, model_output_file, index_to_word,
+                 word_to_index, vocab_size=256, num_chars=2000):
+    # Initialize
     # retval is a list of guns
     retval = []
-    # If we did not get a filename, make a default one
-    if not filename:
-      time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-      filename = 'guns_%s.txt' % time
+    with tf.Session() as sess:
+        sess.run(tf.initialize_all_variables())
+        model['saver'].restore(sess, model_output_file)
 
-    with open(filename, 'w') as f:
-      for i in tqdm(range(n), desc="Guns"):
-         state = None
-         new_gun = [word_to_index[BEGIN_TOKEN]]
-         # Generate characters
-         for i in range(num_chars):
-            # Initialize			
-            if state is not None:
-              feed_dict = {model['x']: [[new_gun]], model['init_state']: state}
-            else:
-              feed_dict = {model['x']: [[new_gun]]}
+        time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = 'guns_%s.txt' % time
 
-            pred, state = sess.run([model['preds'], model['final_state']], feed_dict)
-            sampled = np.random.choice(vocab_size, 1, p=np.sqeeze(pred))[0]
-            new_gun.append(sampled_word)
-            print new_gun
+        with open(filename, 'w') as f:
+            for i in tqdm(range(n), desc="Guns"):
+               state = None
+               new_gun = [word_to_index[BEGIN_TOKEN]]
+               # Generate characters
+               for i in range(num_chars):
+                  # Initialize			
+                  if state is not None:
+                    feed_dict = {model['x']: [[new_gun[-1]]], model['init_state']: state}
+                  else:
+                    feed_dict = {model['x']: [[new_gun[-1]]]}
 
-         f.write(''.join([index_to_word[x] for x in new_gun]))
-         f.write('\n')
-         retval.append(''.join([index_to_word[x] for x in new_gun]))
+                  pred, state = sess.run([model['preds'], model['final_state']], feed_dict)
 
-  return retval
+                  sampled = np.random.choice(vocab_size, 1, p=np.squeeze(pred))[0]
+ 
+                  while (sampled not in index_to_word) or (sampled is word_to_index[UNKNOWN_TOKEN]):
+                    sampled = np.random.choice(vocab_size, 1, p=np.squeeze(pred))[0]
+
+                  new_gun.append(sampled)
+                  if sampled == word_to_index[END_TOKEN]:
+                    break
+               f.write(''.join([index_to_word[x] for x in new_gun]))
+               f.write('\n')
+               retval.append(''.join([index_to_word[x] for x in new_gun]))
+
+    return retval
