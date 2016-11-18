@@ -409,21 +409,15 @@ def train(model, x_train, y_train, word_to_index,
           (examples_seen % callback_freq == 0 or (i+1) == num_batches)):
           # Do callback
           # Save Model and generating an example gun
-          print 'Callback'
-          model['saver'].save(sess, model_output_file)
-          temp = GRUTensor(num_steps=1, batch_size=1)
-          examples = generateGuns(temp, 1, model_output_file, index_to_word, word_to_index)
-          #model['saver'].restore(sess, model_output_file)
-          with open(log_filename, 'a') as log_file:
-            log_file.write('%s (%d)\n' % (dt, examples_seen))
-            log_file.write('-----------------------------------------------------\n')
-            log_file.write('Average Loss over %d training data: %f\n' % (examples_seen,loss))
-            log_file.write('Examples:\n')
-            log_file.write('\n'.join(examples))
+          callback(examples_seen, loss)
 
-      # Record this epoch's loss
-      #epoch_loss = training_loss / (1.* num_batches)
-      #training_losses.append(epoch_loss)	
+      # Record this epoch's loss and save
+      epoch_loss = training_loss / (1.* num_batches)
+      training_losses.append(epoch_loss)
+      model['saver'].save(sess, model_output_file)
+
+    # Save final trained
+    model['saver'].save(sess, model_output_file)
 
   # Return the model once we complete training
   return training_losses
@@ -447,7 +441,7 @@ def generateGun(model, start, num_chars=2000, vocab_size=256):
       pred, state = sess.run([model['preds'], model['final_state']], feed_dict)
       sampled = np.random.choice(vocab_size, 1, p=np.sqeeze(pred))[0]
       new_gun.append(sampled_word)
-    
+
   return new_gun
 
 # generateGuns

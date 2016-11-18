@@ -6,13 +6,12 @@ from datetime import datetime
 from gru_tensor import GRUTensor
 
 # SGD Callback function
-def sgdCallback(num_examples, loss, examples):
+def sgdCallback(num_examples, loss):
+  dt = datetime.now().isoformat()
   with open(log_filename, 'a')as log_file:
       log_file.write('%s (%d)\n' % (dt, num_examples))
       log_file.write('-----------------------------------------------------\n')
       log_file.write('Average Loss over %d training data: %f\n' % (num_examples,loss))
-      log_file.write('Examples:\n')
-      log_file.write('\n'.join(examples))
 
 # Script Data
 learning_rate = .001
