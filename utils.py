@@ -20,6 +20,7 @@ UNKNOWN_TOKEN = 'UNKNOWN_TOKEN'
 BEGIN_TOKEN = 'BEGIN_GUN'
 END_TOKEN = 'END_GUN'
 
+
 # makeGrid
 # This function creates the iterable grid from the Destiny Manifest
 # for an inputed talentGrid
@@ -219,7 +220,7 @@ def getLinesChars(f, max_rolls):
    for line in f:
       if np.random.rand() > (num_got / (max_rolls+0.0)):
          num_got += 1
-         yield [x for x in line]
+         yield [BEGIN_TOKEN]+[x for x in line]+[END_TOKEN]
 
 # loadData
 # Takes in a list of archive file names and loads in the training data
@@ -368,7 +369,7 @@ def trainWithSGD(model, x_train, y_train, learning_rate=.001, nepoch=20,
   callback_freq = np.ceil(callback_every / batch_size)
   # Loop through epochs
   for epoch in tqdm(range(nepoch), desc='Epochs'):
-    for i in tqdm(range(num_batches), desc='Batches'):
+    for i in tqdm(range(int(num_batches)), desc='Batches'):
       # Batch Params
       batch_start = i * batch_size
       batch_end = min(total_examples, (i+1) * batch_size)
@@ -412,7 +413,7 @@ def saveModelParams(model, word_to_index, index_to_word, outfile):
 # loadModelParams
 # Takes in a path to a file, loads in the data, and builds a model from
 # the saved data
-def loadModelParams(path, modelClass=GRUTheano):
+def loadModelParams(path, modelClass=GRUTheano, indexes=True):
   # Load data and params
   npzfile = np.load(path)
   E, U, W, V = npzfile["E"], npzfile["U"], npzfile["W"], npzfile["V"]
@@ -430,7 +431,10 @@ def loadModelParams(path, modelClass=GRUTheano):
   model.c.set_value(c)
   print "Complete!"
 
-  return model, npzfile['word_to_index'].item(), npzfile['index_to_word'].tolist()
+  if indexes:
+    return model, npzfile['word_to_index'].item(), npzfile['index_to_word'].tolist()
+  else:
+    return model
 
 # gradientCheckTheano
 # Takes the inputted model and training data to check the model's parameters
@@ -484,10 +488,9 @@ def gradientCheckTheano(model, x, y, h=0.001, error_threshold=0.01):
 
 # generateGun
 # Takes in the trained model and the word indices and returns a gun
-def generateGun(model, index_to_word, word_to_index, min_length=20,
-                batch_size=32):
+def generateGun(model, index_to_word, word_to_index, min_length=20):
   # Start with the begin token
-  new_gun = [word_to_index[BEGIN_TOKEN]] * batch_size
+  new_gun = [word_to_index[BEGIN_TOKEN]]
   # Repeat until we get an end token or the gun is too long (>300 words)
   # to make sure we aren't getting caught in some loop
   while not new_gun[-1] == word_to_index[END_TOKEN]:
@@ -498,6 +501,8 @@ def generateGun(model, index_to_word, word_to_index, min_length=20,
     # Loop to make sure we don't sample an unknown token
     sampled_word = word_to_index[UNKNOWN_TOKEN]
     while sampled_word == word_to_index[UNKNOWN_TOKEN]:
+        print next_word_prob
+        print index_to_word[sampled_word]
         samples = np.random.multinomial(1, next_word_prob)
         sampled_word = np.argmax(next_word_prob)
     # Add this to the new gun
@@ -514,8 +519,7 @@ def generateGun(model, index_to_word, word_to_index, min_length=20,
 # generateGuns
 # Given a model, word indices, and a number of guns to make, this function
 # generates guns from the model
-def generateGuns(model, n, index_to_word, word_to_index, filename=None,
-                 batch_size=32):
+def generateGuns(model, n, index_to_word, word_to_index, filename=None):
   # retval is a list of guns
   retval = []
   # If we did not get a filename, make a default one
@@ -527,7 +531,7 @@ def generateGuns(model, n, index_to_word, word_to_index, filename=None,
     for i in tqdm(range(n), desc="Guns"):
       sent = None
       while not sent:
-        sent = generateGun(model, index_to_word, word_to_index, batch_size)
+        sent = generateGun(model, index_to_word, word_to_index)
 
       pprint(sent)
       f.write(" ".join(sent))

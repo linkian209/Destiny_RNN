@@ -3,19 +3,20 @@ import time
 from tqdm import tqdm
 from utils import *
 from datetime import datetime
-from gru_theano import GRUTheano
+from gru_theano import GRUTheano, GRUTheanoBatch
 
 # SGD Callback function
 def sgdCallback(model, num_examples):
   dt = datetime.now().isoformat()
-  loss = model.calculateLoss(x_train, y_train)
+  loss = model.calculateLoss(x_train[0:512], y_train[0:512])
   log_file.write('%s (%d)\n' % (dt, num_examples))
   log_file.write('-----------------------------------------------------\n')
-  log_file.write('Average Loss over %d training data: %f' % (len(x_train),loss))
+  log_file.write('Average Loss over 512 training data: %f' % loss)
   log_file.write('\nSaving model..\n')
   saveModelParams(model, word_to_index, index_to_word, model_output_file)
   log_file.write('Save Complete!\n')
-  examples = generateGuns(model, 3, index_to_word, word_to_index)
+  temp = loadModelParams(model_output_file+'.npz', indexes=False)
+  examples = generateGuns(temp, 3, index_to_word, word_to_index)
   log_file.write('\n'.join(examples))
 
 # Script Data
@@ -32,10 +33,11 @@ log_file = open('log.txt','w')
 print 'Constructing training data...'
 x_train, y_train, word_to_index, index_to_word = loadDataChars(input_data_file, vocab_size)
 print 'Training Data Assembly Complete!\n'
+print 'Sample: ' + ' '.join([index_to_word[w] for w in x_train[0]])
 
 # Build Model
 print 'Creating model...'
-model = GRUTheano(vocab_size, hidden_dim=hidden_dim, bptt_truncate=-1)
+model = GRUTheanoBatch(vocab_size, hidden_dim=hidden_dim, bptt_truncate=-1)
 saveModelParams(model, word_to_index, index_to_word, model_output_file)
 print 'Model created and initial state saved!'
 

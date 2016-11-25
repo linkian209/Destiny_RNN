@@ -360,6 +360,38 @@ def loadDataChars(filenames,vocab_size=128, max_rolls=1000, max_len=2000):
 
    return x_train, y_train, word_to_index, index_to_word
 
+# getIndexes
+# Just create the indexes
+def getIndexes(filenames,vocab_size=128, max_rolls=1000):
+   # Read in data
+   vocab = set()
+   print 'Beginning data load...'
+   for cur_archive in tqdm(filenames,desc="Archives"):
+      # Get the contents of the current archive
+      zf = zipfile.ZipFile(cur_archive, 'a', zipfile.ZIP_DEFLATED, allowZip64=True)
+      zf.extract('contents.txt')
+      with open('contents.txt','r') as f:
+         files = f.read().split('\n')
+
+      files = [x for x in files if x]
+
+      # Loop through files and read the data
+      for cur_file in tqdm(files, desc="Files"):
+        zf.extract(cur_file)	   
+        for sent in list(getLinesChars(open(cur_file,'r'), max_rolls)):
+		  for c in sent:
+			 vocab.add(c)
+        os.remove(cur_file)
+
+   vocab.add(UNKNOWN_TOKEN)
+
+   print 'Creating Indices...'
+   index_to_word = dict(enumerate(vocab))
+   word_to_index = dict(zip(index_to_word.values(), index_to_word.keys()))
+   print 'Indices Created!'
+
+   return index_to_word, word_to_index
+
 # train
 # Take the inputted model and training data and run a number of epochs
 # over the data to train the model
@@ -415,12 +447,24 @@ def train(model, x_train, y_train, word_to_index,
       epoch_loss = training_loss / (1.* num_batches)
       training_losses.append(epoch_loss)
       model['saver'].save(sess, model_output_file)
+      saveModelIndexes(index_to_word, word_to_index, model_output_file)
 
     # Save final trained
     model['saver'].save(sess, model_output_file)
 
   # Return the model once we complete training
   return training_losses
+
+# saveIndexes
+# Save the indexes for the a model
+def saveModelIndexes(index_to_word, word_to_index, outfile):
+    np.savez(outfile, word_to_index=word_to_index, index_to_word=index_to_word)
+
+# loadIndexes
+# Load the indexes for the a model
+def loadModelIndexes(outfile):
+    npzfile = np.load(outfilez)
+    return npzfile['word_to_index'].item(), npzfile['index_to_word'].item()
 
 # generateGun
 # Takes in the trained model and the word indices and returns a gun
