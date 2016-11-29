@@ -223,74 +223,11 @@ def getLinesChars(f, max_rolls):
          num_got += 1
          yield [BEGIN_TOKEN]+[x for x in line]+[END_TOKEN]
 
-# loadData
-# Takes in a list of archive file names and loads in the training data
-def loadData(filenames,vocab_size=2000, max_rolls=1000):
-   # Initialize Vars
-   word_to_index = []
-   index_to_word = []
-   vocab = []
-   tokenized = []
-
-   # Read in data
-   print 'Beginning data load...'
-   for cur_archive in tqdm(filenames,desc="Archives"):
-      # Get the contents of the current archive
-      zf = zipfile.ZipFile(cur_archive, 'a', zipfile.ZIP_DEFLATED, allowZip64=True)
-      zf.extract('contents.txt')
-      with open('contents.txt','r') as f:
-         files = f.read().split('\n')
-
-      files = [x for x in files if x]
-
-      # Loop through files and read the data
-      for cur_file in tqdm(files, desc="Files"):
-         # Extract the current file
-         zf.extract(cur_file)
-         # Get the first 100 rolls and tokenize them
-         num_rolls = 0
-         with open(cur_file, 'r') as f:
-            tokenized += list(getLines(f, max_rolls))
-         # Delete the current file
-         os.remove(cur_file)
-
-      # After looping through this archive's files, delete the contents.txt
-      # and start on the next one
-      os.remove('contents.txt')
-
-   print '\nData load complete!'
-
-   # After looping through the data, get the most used words and use them
-   # as our vocab
-   print 'Creating vocab...'
-   word_freq = nltk.FreqDist(itertools.chain(*tokenized))
-   vocab = sorted(word_freq.items(), key=lambda x: (x[1], x[0]))
-   vocab = sorted(vocab, key=operator.itemgetter(1))
-   print 'Vocab Created!'
-
-   print 'Creating Indices...'
-   index_to_word = ["<MASK/>", UNKNOWN_TOKEN] + [x[0] for x in tqdm(vocab, desc='Index to Word')]
-   word_to_index = dict([(w,i) for i,w in tqdm(enumerate(index_to_word), desc='Word to Index')])
-   print 'Indices Created!'
-
-   # Replace missing words with the unknown token
-   print 'Checking for unknown tokens....'
-   for i, sent in tqdm(enumerate(tokenized), desc='Tokenized'):
-      tokenized[i] = [w if w in word_to_index else UNKNOWN_TOKEN for w in sent]
-   print 'Complete!'
-
-   # Create Training Data Arrays
-   print 'Creating training arrays...'
-   x_train = np.asarray([[word_to_index[w] for w in tqdm(sent[:-1], desc='Words')] for sent in tqdm(tokenized,desc='x_train')],dtype='int32')
-   y_train = np.asarray([[word_to_index[w] for w in tqdm(sent[1:], desc='Words')] for sent in tqdm(tokenized, desc='y_train')],dtype='int32')
-   print '\nTraining arrays created!'
-
-   return x_train, y_train, word_to_index, index_to_word
-
 # loadDataChars
 # Takes in a list of archive file names and loads in the training data as
 # lists of characters
-def loadDataChars(filenames,vocab_size=128, max_rolls=1000, max_len=2000):
+def loadDataChars(filenames,vocab_size=128, max_rolls=1000, 
+                  model_file=None, max_len=2000):
    # Initialize Vars
    word_to_index = []
    index_to_word = []
@@ -331,20 +268,26 @@ def loadDataChars(filenames,vocab_size=128, max_rolls=1000, max_len=2000):
                sent.append(NULL_TOKEN)
    print 'Padding complete!'
 
-   # After looping through the data, get the most used words and use them
-   # as our vocab
-   print 'Creating vocab...'
-   vocab = set()
-   for sent in tokenized:
-      for c in sent:
-	     vocab.add(c)
-   vocab.add(UNKNOWN_TOKEN)
-   print 'Vocab Created!'
+   # After looping through the data, check to see if we have a model_file
+   # param, if not, get the most used chars and use them
+   # as our vocab; else, load in the indexes
+   if not model_file:
+       print 'Creating vocab...'
+       vocab = set()
+       for sent in tokenized:
+          for c in sent:
+	         vocab.add(c)
+       vocab.add(UNKNOWN_TOKEN)
+       print 'Vocab Created!'
 
-   print 'Creating Indices...'
-   index_to_word = dict(enumerate(vocab))
-   word_to_index = dict(zip(index_to_word.values(), index_to_word.keys()))
-   print 'Indices Created!'
+       print 'Creating Indices...'
+       index_to_word = dict(enumerate(vocab))
+       word_to_index = dict(zip(index_to_word.values(), index_to_word.keys()))
+       print 'Indices Created!'
+   else:
+       print 'Loading Indexes...'
+       word_to_index, index_to_word = loadModelIndexes(model_file+'.npz')
+       print 'Indexes loaded!'
 
    # Replace missing words with the unknown token
    print 'Checking for unknown tokens....'
@@ -397,18 +340,24 @@ def getIndexes(filenames,vocab_size=128, max_rolls=1000):
 # over the data to train the model
 def train(model, x_train, y_train, word_to_index,
                  index_to_word, model_output_file, learning_rate=.0001,
-                 nepoch=20, callback_every=10000,
-                 callback=None, batch_size=32):
+                 nepoch=20, callback_every=10000, load_model=False,
+                 callback=None, batch_size=32, starting_epoch=None):
   training_losses = []
   with tf.Session() as sess:
     # Initialize
-    sess.run(tf.initialize_all_variables())
+    if load_model:
+      model['saver'].restore(sess, model_output_file)
+    else:
+      sess.run(tf.initialize_all_variables())
     examples_seen = 0
     total_examples = len(x_train)
     num_batches = np.ceil(1. * total_examples / batch_size)
     callback_freq = np.ceil(callback_every / batch_size)
     # Loop through epochs
     for epoch in tqdm(range(nepoch), desc='Epochs'):
+      # If we had a starting epoch passed in, start at that epoch
+      if starting_epoch and epoch < starting_epoch:
+        continue
       # Epoch variables
       training_loss = 0
       training_state = None
@@ -463,7 +412,7 @@ def saveModelIndexes(index_to_word, word_to_index, outfile):
 # loadIndexes
 # Load the indexes for the a model
 def loadModelIndexes(outfile):
-    npzfile = np.load(outfilez)
+    npzfile = np.load(outfile)
     return npzfile['word_to_index'].item(), npzfile['index_to_word'].item()
 
 # generateGun
@@ -492,7 +441,7 @@ def generateGun(model, start, num_chars=2000, vocab_size=256):
 # Given a model, word indices, and a number of guns to make, this function
 # generates guns from the model
 def generateGuns(model, n, model_output_file, index_to_word,
-                 word_to_index, vocab_size=256, num_chars=2000):
+                 word_to_index, vocab_size=256, num_chars=2000, seed=None):
     # Initialize
     # retval is a list of guns
     retval = []
@@ -507,6 +456,9 @@ def generateGuns(model, n, model_output_file, index_to_word,
             for i in tqdm(range(n), desc="Guns"):
                state = None
                new_gun = [word_to_index[BEGIN_TOKEN]]
+               if seed:
+                   for char in seed:
+                       new_gun.append(word_to_index[char] if char in word_to_index else word_to_index[UNKNOWN_TOKEN])
                # Generate characters
                for i in range(num_chars):
                   # Initialize			
